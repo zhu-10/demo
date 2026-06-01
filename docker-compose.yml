@@ -1,0 +1,65 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: shu
+      MYSQL_ROOT_PASSWORD: root1234
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      app-net:
+        ipv4_address: 172.20.0.5 # 手动指定 MySQL 的静态 IP
+    restart: always
+    healthcheck: # ✅ 添加这段
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-proot1234']
+  redis:
+    image: redis:7-alpine
+    networks:
+      - app-net
+
+    restart: always
+
+  backend:
+    build: D:/xq
+    environment:
+      DB_HOST: mysql # 仍然写 mysql
+      DB_PORT: '3306'
+      DB_NAME: shu
+      DB_USER: root
+      DB_PASSWORD: root1234
+      REDIS_HOST: redis
+    extra_hosts:
+      - 'mysql:172.20.0.5' # 强制 hosts 映射，不经过 DNS
+    depends_on:
+      mysql:
+        condition: service_healthy # 等待 MySQL 健康检查通过
+      redis:
+        condition: service_started # 等待 Redis 启动完成
+    networks:
+      - app-net
+    restart: always
+    volumes:
+      - uwsgi_sock:/tmp
+
+  frontend:
+    build: .
+    ports:
+      - '80:80'
+    depends_on:
+      - backend
+    networks:
+      - app-net
+    restart: always
+    volumes:
+      - uwsgi_sock:/tmp
+
+networks:
+  app-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 # 自定义子网，确保 IP 可用
+
+volumes:
+  db_data:
+  uwsgi_sock:
