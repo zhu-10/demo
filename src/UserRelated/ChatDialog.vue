@@ -14,8 +14,8 @@
         <div v-for="msg in messages" :key="msg.id" class="message-item">
           <span class="time">{{ formatTime(msg.create_time) }}</span>
           <div class="message-content">
-            <span class="sender" v-if="(msg.sender?.id || msg.sender) !== currentUserId">
-              {{ msg.sender?.username || '私信' }}
+            <span class="sender" v-if="(msg.user?.id || msg.user) !== currentUserId">
+              {{ msg.user?.username || '私信' }}
             </span>
 
             <span class="receiver" v-else style="color: #07c160">我</span>
@@ -67,7 +67,7 @@ const emit = defineEmits<{
 
 // ---------- 响应式数据 ----------
 const messages = ref<any[]>([])
-const currentUserId = ref(null)
+const currentUserId = ref<number | null>(null)
 const newMessage = ref('')
 const scrollRef = ref<HTMLElement | null>(null)
 const handleKeyup = ref('')

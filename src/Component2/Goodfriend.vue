@@ -14,8 +14,11 @@
         <div v-for="msg in messages" :key="msg.id" class="message-item">
           <span class="time">{{ formatTime(msg.created_at) }}</span>
           <div class="message-content">
-            <span class="sender" v-if="msg.sender?.id !== currentUserId">
-              {{ msg.sender?.username || '未知用户' }}
+            <span
+              class="sender"
+              v-if="currentUserId !== null && Number(msg.sender?.id) !== Number(currentUserId)"
+            >
+              {{ msg.sender_detail?.username || '未知用户' }}
             </span>
             <span class="receiver" v-else style="color: #07c160">我</span>
             <span class="content">{{ msg.content }}</span>
@@ -65,7 +68,7 @@ const emit = defineEmits(['update:visible'])
 
 // ---------- 响应式数据 ----------
 const messages = ref<any[]>([])
-const currentUserId = ref(null)
+const currentUserId = ref<number | null>(null)
 const newMessage = ref('')
 const scrollRef = ref<HTMLElement | null>(null)
 const handleKeyup = ref('')
@@ -179,6 +182,8 @@ const fetchMessages = async (direction: 'older' | 'newer') => {
   } finally {
     if (direction === 'older') loadingOlder.value = false
     else loadingNewer.value = false
+    console.log('props.user 的值:', props.user)
+    console.log('props.user?.username 的值:', props.user?.username)
   }
 }
 //发送消息
@@ -273,6 +278,7 @@ onMounted(() => {
 .el-dialog {
   margin-left: 300px;
 }
+
 .message-list {
   /* flex-direction: column;  */
   width: 710px;
