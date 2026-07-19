@@ -5,7 +5,7 @@
       <!-- 会话列表 -->
       <div
         v-for="conv in conversationList"
-        :key="conv.id || conv.user?.id"
+        :key="conv.user || conv.user?.id"
         @click="openChatFromList(conv)"
         class="infinite-list-item"
       >
