@@ -33,7 +33,7 @@
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading">加载中</div>
+    <div v-if="loading" class="loading">加载中...</div>
     <div v-if="noMore && !conversationList.length" class="no-more">暂时没有私信</div>
   </div>
   <div class="button-row">
