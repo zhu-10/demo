@@ -35,16 +35,15 @@
     <!-- 加载状态 -->
     <div v-if="loading" class="loading">加载中</div>
     <div v-if="noMore && !conversationList.length" class="no-more">暂时没有私信</div>
-
-  <div class="button-example">
-    <div class="button-row">
-      <el-button>Default</el-button>
-      <el-button type="primary">Primary</el-button>
-      <el-button type="success">Success</el-button>
-      <el-button type="info">Info</el-button>
-      <el-button type="warning">Warning</el-button>
-      <el-button type="danger">Danger</el-button>
-    </div></div>
+  </div>
+  <div class="button-row">
+    <el-button>Default</el-button>
+    <el-button type="primary">Primary</el-button>
+    <el-button type="success">Success</el-button>
+    <el-button type="info">Info</el-button>
+    <el-button type="warning">Warning</el-button>
+    <el-button type="danger">Danger</el-button>
+  </div>
 </template>
 
 <script setup lang="ts">
