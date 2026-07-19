@@ -14,25 +14,23 @@
           <h4>
             {{ conv.user?.username || '匿名用户' }}
             <el-badge
-              :value="conv.unread_count"
-              :hidden="conv.unread_count === 0"
+              :value="conv.last_message?.unread_count"
+              :hidden="!conv.last_message?.unread_count || conv.last_message.unread_count === 0"
               class="unread-badge"
             />
           </h4>
           <p>{{ conv.last_message?.content || '暂无消息' }}</p>
-          <p class="time">{{ formatTime(conv.last_message?.create_time) }}</p>
+          <p class="time">{{ formatTime(conv.last_message?.create_time || '') }}</p>
         </div>
       </div>
+
+      <ChatDialog
+        v-if="currentChatUser?.id"
+        v-model:visible="dialogVisible"
+        :user="currentChatUser"
+        :currentUserId="currentUserId"
+      />
     </div>
-
-    <!-- 聊天弹窗 -->
-
-    <ChatDialog
-      v-if="currentChatUser?.id"
-      v-model:visible="dialogVisible"
-      :user="currentChatUser"
-      :currentUserId="currentUserId"
-    />
 
     <!-- 加载状态 -->
     <div v-if="loading" class="loading">加载中...</div>
@@ -46,15 +44,32 @@ import { ElMessage } from 'element-plus'
 import axios from 'axios'
 import ChatDialog from './ChatDialog.vue'
 // --- 数据 ---
-const conversationList = ref([]) // 会话列表
+const conversationList = ref<Conversation[]>([]) // 会话列表
 const loading = ref(false)
 const noMore = ref(false)
 const currentPage = ref(1)
 const pageSize = 20
 const dialogVisible = ref(false)
-const currentChatUser = ref<any>(null) // 当前聊天用户
+const currentChatUser = ref<Conversation['user'] | null>(null) // 当前聊天用户
 // const [conversations, setConversations] = useState<Conversation[]>([]);
-const currentUserId = ref(null) // 当前登录用户的ID
+const currentUserId = ref<number | null>(null) // 当前登录用户的ID
+
+//JSON 数据结构定义
+interface Conversation {
+  id: string
+  user?: {
+    id: number
+    username: string
+    image?: string
+    // ...
+  }
+  unread_count?: number
+  last_message?: {
+    content: string
+    create_time: string
+    unread_count?: number
+  }
+}
 // --- 获取当前用户ID ---
 const fetchCurrentUserId = async () => {
   const savedId = localStorage.getItem('user_id')
@@ -80,8 +95,9 @@ const fetchCurrentUserId = async () => {
 }
 
 // --- 清空未读消息 标记 ---
-const openChatFromList = async (conv: any) => {
+const openChatFromList = async (conv: Conversation) => {
   if (!conv || !conv.user || !currentUserId.value) return
+  currentChatUser.value = conv.user
 
   // 乐观更新：立即清零
   const originalUnread = conv.unread_count
@@ -102,7 +118,7 @@ const openChatFromList = async (conv: any) => {
   }
 
   // 打开弹窗
-  currentChatUser.value = { id: conv.user.id, username: conv.user.username }
+  currentChatUser.value = conv.user
   dialogVisible.value = true
 }
 // --- 获取会话列表 ---

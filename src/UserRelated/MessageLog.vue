@@ -81,7 +81,7 @@ const fetchCurrentUserId = async () => {
   }
 }
 
-// --- 清空未读消息 标记 ---
+// --- 清空消息未读消息 标记 ---
 const openChatFromList = async (conv: any) => {
   if (!conv || !conv.user || !currentUserId.value) return
 
