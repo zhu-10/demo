@@ -5,6 +5,7 @@ const routes = [
     path: '/',
     name: 'AdminPage',
     component: AdminPage, // 布局组件
+    redirect: '/MainPage',
     children: [
       // 子路由
       {
@@ -32,18 +33,23 @@ const routes = [
   { path: '/2', name: 'RegisterView', component: () => import('../views/RegisterView.vue') },
   {
     path: '/3',
-    name: 'XiugaiMi',
+    name: 'updatePasswordViewSet',
     component: () => import('../views/XiugaiMi.vue'),
   },
   {
     path: '/5',
-    name: 'Personal Information',
-    component: () => import('../views/Personal Information.vue'), //  个人中心
+    name: 'PersonalInformation',
+    component: () => import('../views/PersonalInformation.vue'), //  个人中心
   },
   {
     path: '/6',
     name: 'SearchComponent2',
     component: () => import('../Component/SearchComponent2.vue'), //搜索显示组件
+  },
+  {
+    path: '/user', // 用户资料页面
+    name: 'UserProfile',
+    component: () => import('../Component2/UserProfile.vue'), // 用户资料页面
   },
 ]
 

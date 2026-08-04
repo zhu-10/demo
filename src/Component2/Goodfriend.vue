@@ -18,7 +18,13 @@
               class="sender"
               v-if="currentUserId !== null && Number(msg.sender?.id) !== Number(currentUserId)"
             >
-              {{ msg.sender_detail?.username || '未知用户' }}
+              <el-link
+                class="sender"
+                v-if="currentUserId !== null && Number(msg.sender?.id) !== Number(currentUserId)"
+                @click="goToUserProfile(msg.sender)"
+              >
+                {{ msg.sender_detail?.username || '未知用户' }}
+              </el-link>
             </span>
             <span class="receiver" v-else style="color: #07c160">我</span>
             <span class="content">{{ msg.content }}</span>
@@ -97,6 +103,16 @@ const formatTime = (isoString: string) => {
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
   return date.toLocaleDateString('zh-CN') // 超过一天显示日期
 }
+
+const goToUserProfile = (targetId: number | null) => {
+  console.log('【触发点击】 targetId:', targetId)
+  if (!targetId) return
+  router.push({ name: 'UserProfile', params: { id: targetId } })
+}
+// function onClear() {
+//   input.value = ''
+//   router.push({ name: 'SearchComponent2', query: {} }) // 清空时清除 query
+// }
 // --- 获取当前用户ID ---
 const fetchCurrentUser = async () => {
   const savedId = localStorage.getItem('user_id')

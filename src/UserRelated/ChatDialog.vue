@@ -268,6 +268,10 @@ onMounted(() => {
 .el-dialog {
   margin-left: 300px;
 }
+.input-area {
+  width: 100px;
+}
+
 .message-list {
   /* flex-direction: column;  */
   width: 710px;

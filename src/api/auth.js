@@ -16,7 +16,7 @@ export function refresh(refresh) {
   // 刷新 access（POST /xq/api/token/refresh/）
   return axios.post('/api/token/refresh/', { refresh })
 }
-export function xiugaimi(data) {
+export function updatePassword(data) {
   // 修改密码（POST /xq/api/token/）
   return axios.post('/api/token/', data)
 }
@@ -26,5 +26,5 @@ export default {
   login,
   register,
   refresh,
-  xiugaimi,
+  updatePassword,
 }

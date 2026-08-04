@@ -5,7 +5,7 @@
     </div>
 
     <!-- 搜索框 -->
-    <!-- 当我点击搜索时，跳转到Search -->
+    <!-- 当我点击搜索 -->
     <div class="search-container">
       <div class="search">
         <el-input
@@ -43,9 +43,9 @@
       </div>
       <template #dropdown>
         <el-dropdown-menu>
-          <el-dropdown-item command="profile">个人信息</el-dropdown-item>
-          <el-dropdown-item command="changePwd">修改密码</el-dropdown-item>
-          <el-dropdown-item command="logout">退出</el-dropdown-item>
+          <el-dropdown-item command="Personal Information">个人信息</el-dropdown-item>
+          <el-dropdown-item command="updatePasswordViewSet">修改密码</el-dropdown-item>
+          <el-dropdown-item command="LoiginViewSet">退出</el-dropdown-item>
         </el-dropdown-menu>
       </template>
     </el-dropdown>
