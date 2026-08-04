@@ -43,9 +43,9 @@
       </div>
       <template #dropdown>
         <el-dropdown-menu>
-          <el-dropdown-item command="Personal Information">个人信息</el-dropdown-item>
-          <el-dropdown-item command="updatePasswordViewSet">修改密码</el-dropdown-item>
-          <el-dropdown-item command="LoiginViewSet">退出</el-dropdown-item>
+          <el-dropdown-item command="PersonalInformation">个人信息</el-dropdown-item>
+          <el-dropdown-item command="updatePasswordView">修改密码</el-dropdown-item>
+          <el-dropdown-item command="LoginView">退出</el-dropdown-item>
         </el-dropdown-menu>
       </template>
     </el-dropdown>
@@ -140,13 +140,13 @@ const fetchUserInfo = async () => {
 //配置跳转路由
 const handleCommand = (command) => {
   switch (command) {
-    case 'profile':
+    case 'PersonalInformation':
       router.push('/5')
       break
-    case 'changePwd':
+    case 'updatePasswordView':
       router.push('/3')
       break
-    case 'logout':
+    case 'LoginView':
       // 执行退出登录（清除 token 等），然后跳转
       router.push('/1')
       break

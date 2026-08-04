@@ -15,7 +15,6 @@
               <span>个人管理</span>
             </template>
             <el-menu-item index="ManageMent">文章</el-menu-item>
-            <el-menu-item index="/user">我的</el-menu-item>
             <el-menu-item index="MessageLog">好友</el-menu-item>
             <el-menu-item index="PrivateMessage">私信</el-menu-item>
           </el-sub-menu>

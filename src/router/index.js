@@ -5,7 +5,7 @@ const routes = [
     path: '/',
     name: 'AdminPage',
     component: AdminPage, // 布局组件
-    redirect: '/MainPage',
+    // redirect: '/MainPage',
     children: [
       // 子路由
       {
@@ -26,14 +26,14 @@ const routes = [
   },
   {
     path: '/1',
-    name: ' LoginView',
+    name: 'LoginView',
     component: () => import('../views/LoginView.vue'),
   },
 
   { path: '/2', name: 'RegisterView', component: () => import('../views/RegisterView.vue') },
   {
     path: '/3',
-    name: 'updatePasswordViewSet',
+    name: 'updatePasswordView',
     component: () => import('../views/XiugaiMi.vue'),
   },
   {

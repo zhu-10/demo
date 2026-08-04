@@ -1,25 +1,27 @@
+<!-- 个人详情 -->
 <template>
-  <!-- 个人信息 -->
-  <div class="wai">
-    <div class="nei">
-      <span>个人信息</span>
-    </div>
-    <div>
-      <span>账号名</span>
-    </div>
-    <div>
-      <span>电话号码</span>
-    </div>
-    <div>
-      <span>性别</span>
-    </div>
-    <div>
-      <span>出生日期</span>
-    </div>
-  </div>
+  <el-descriptions title="用户信息" direction="vertical" :column="4" :size="size" border>
+    <el-descriptions-item label="Username">kooriookami</el-descriptions-item>
+    <el-descriptions-item label="Telephone">18100000000</el-descriptions-item>
+    <el-descriptions-item label="Place" :span="2">Suzhou</el-descriptions-item>
+    <el-descriptions-item label="Remarks">
+      <el-tag size="small">School</el-tag>
+    </el-descriptions-item>
+    <el-descriptions-item label="Address">
+      No.1188, Wuzhong Avenue, Wuzhong District, Suzhou, Jiangsu Province
+    </el-descriptions-item>
+  </el-descriptions>
 </template>
-<script setup></script>
-<style>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const size = ref('default')
+</script>
+<style scoped>
+.el-descriptions {
+  margin-top: 20px;
+}
 .wai {
   display: flex;
   align-items: center;

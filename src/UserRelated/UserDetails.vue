@@ -2,6 +2,7 @@
   <!-- 给作品作者发送私信 -->
   <el-dialog
     :model-value="visible"
+    style="width: 650px"
     @update:visible="$emit('update:visible', $event)"
     title="用户详情"
     @close="handleClose"
