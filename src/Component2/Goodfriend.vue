@@ -298,7 +298,7 @@ onMounted(() => {
 .message-list {
   /* flex-direction: column;  */
   width: 710px;
-  height: 630px;
+  height: 450px;
   margin-left: 102px;
   overflow-y: auto; /* 添加这一行，允许垂直滚动 */
   /* 可选：美化滚动条 */
@@ -343,5 +343,8 @@ onMounted(() => {
   font-size: 13px;
   color: #333;
   border: 1px solid #e4e7ed; /* 加个细边框，更有立体感 */
+}
+.input-area {
+  margin-left: -50px;
 }
 </style>

@@ -22,7 +22,7 @@ import Sidebar from './components/SideBar.vue'
 <style scoped>
 .common-layout {
   background: rgb(211, 211, 211);
-  height: 98vh;
+  height: 97vh;
   width: 99vw;
 }
 .el-header {

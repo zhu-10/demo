@@ -275,8 +275,8 @@ onMounted(() => {
 .message-list {
   /* flex-direction: column;  */
   width: 710px;
-  height: 630px;
-  margin-left: 102px;
+  height: 450px;
+  margin-left: 20px;
   overflow-y: auto; /* 添加这一行，允许垂直滚动 */
   /* 可选：美化滚动条 */
   scrollbar-width: thin;

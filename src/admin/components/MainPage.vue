@@ -2,8 +2,12 @@
   <div class="main-wai">
     <el-space fill style="height: 50px">
       <div class="main-shua">
-        <el-button type="primary" plain @click="setLoading">刷新</el-button>
-        <el-button type="danger" plain @click="dialogFormVisible = true">发布</el-button>
+        <el-button style="margin-right: 15px" type="primary" plain @click="setLoading"
+          >刷新</el-button
+        >
+        <el-button style="margin-right: 30px" type="danger" plain @click="dialogFormVisible = true"
+          >发布</el-button
+        >
         <el-dialog class="rc" v-model="dialogFormVisible" title="分享日常" style="width: 650px">
           <el-form :model="form">
             <el-form-item label="主题" :label-width="formLabelWidth">
@@ -291,7 +295,7 @@ onMounted(() => {
   width: 100%;
 }
 .main-shua {
-  margin-right: 10px; /* 调整右边距 */
+  margin-right: -70px; /* 调整右边距 */
   margin-top: 15px; /*向下移动*/
 }
 .rc {

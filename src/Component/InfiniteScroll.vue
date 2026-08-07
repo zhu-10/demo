@@ -151,8 +151,8 @@ onMounted(() => {
   margin-left: 5%; /* 调整左侧边距 */
   margin-top: 10px; /* 调整顶部边距 */
   flex-direction: column; /* 垂直排列 */
-  height: 815px; /* 固定高度，产生滚动条 */
-  width: 65%; /* 固定宽度 */
+  height: 620px; /* 固定高度，产生滚动条 */
+  width: 76%; /* 固定宽度 */
   overflow-y: auto; /* 只允许垂直滚动 */
   border: 3px solid rgb(234, 175, 108);
   margin-right: 10px;

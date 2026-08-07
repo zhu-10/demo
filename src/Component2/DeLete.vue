@@ -193,7 +193,6 @@ onMounted(() => {
 
 <style scoped>
 .data-list-container {
-  margin-top: 10px;
   margin-right: 100px;
   width: 70%;
 
@@ -205,7 +204,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 20px 0;
+  padding: 10px 0;
   margin-left: 5%;
 
   /*border-bottom: 1px solid #e4e7ed;  底部边框 */
@@ -214,8 +213,8 @@ onMounted(() => {
   display: flex;
   margin-left: 5%; /* 调整左侧边距 */
   flex-direction: column; /* 垂直排列 */
-  height: 740px; /* 固定高度，产生滚动条 */
-  width: 100%;
+  height: 570px; /* 固定高度，产生滚动条 */
+  width: 900px;
   overflow-y: auto; /* 只允许垂直滚动 */
   border: 3px solid rgb(234, 175, 108);
   margin-right: 10px;
@@ -249,9 +248,9 @@ onMounted(() => {
 }
 .infinite-list-item h5 {
   width: 30px;
-  margin-top: -25px;
+  margin-top: -29px;
   margin-left: auto;
-  margin-right: -150px;
+  margin-right: -110px;
 }
 .item-image {
   width: 150px;
