@@ -110,8 +110,8 @@ const onSubmit = async () => {
 <style scoped>
 .login {
   display: flex;
-  height: 1020px;
-  width: 1873px;
+  height: 97vh;
+  width: 99vw;
   background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
   justify-content: center; /*水平居中 */
   align-items: center; /*垂直居中 */

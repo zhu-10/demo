@@ -234,7 +234,7 @@ onDeactivated(() => {
 .message-content .time {
   width: 60px;
   height: 8px;
-  margin-left: 75%;
+  margin-left: 71%;
   margin-top: 50px;
 }
 </style>

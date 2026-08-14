@@ -47,9 +47,10 @@ const routes = [
     component: () => import('../Component/SearchComponent2.vue'), //搜索显示组件
   },
   {
-    path: '/user', // 用户资料页面
+    path: '/user/:userId?', // 用户资料页面
     name: 'UserProfile',
     component: () => import('../Component2/UserProfile.vue'), // 用户资料页面
+    props: true,
   },
 ]
 

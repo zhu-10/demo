@@ -1,4 +1,5 @@
 <template>
+  <!-- 用户详情弹出框页面 -->
   <div class="user-prof">
     <div v-loading="loading" element-loading-text="加载中...">
       <el-form
@@ -25,21 +26,17 @@
                   @keyup.enter="confirmEdit"
                 />
               </el-form-item>
-              <el-button
-                type="text"
-                :icon="isEditing ? 'Check' : 'Edit'"
-                @click="toggleEdit"
-                style="margin-left: 8px"
-              >
-                {{ isEditing ? '确认' : '修改' }}
-              </el-button>
             </div>
           </el-descriptions-item>
 
           <!-- 性别 -->
           <el-descriptions-item label="性别">
             <el-form-item prop="gender">
-              <el-select v-model="userInfo.gender" placeholder="男/女" style="width: 200px">
+              <el-select
+                v-model="userInfo.gender"
+                placeholder="男/女"
+                style="width: 200px; margin-right: -40px"
+              >
                 <el-option
                   v-for="item in genderOptions"
                   :key="item.value"
@@ -65,6 +62,13 @@
           </el-descriptions-item>
 
           <!-- 备注 -->
+          <el-descriptions-item label="邮箱">
+            <el-form-item prop="email">
+              <el-input v-model="userInfo.email" style="width: 240px" placeholder="请输入邮箱" />
+            </el-form-item>
+          </el-descriptions-item>
+
+          <!-- 备注 -->
           <el-descriptions-item label="备注">
             <el-form-item prop="remark">
               <el-input v-model="userInfo.remark" style="width: 240px" placeholder="请输入备注" />
@@ -73,9 +77,9 @@
 
           <!-- 简介 -->
           <el-descriptions-item label="简介" :span="4">
-            <el-form-item prop="introduction">
+            <el-form-item prop="signature">
               <el-input
-                v-model="userInfo.introduction"
+                v-model="userInfo.signature"
                 type="textarea"
                 :rows="3"
                 placeholder="请输入简介"
@@ -88,14 +92,22 @@
         <!-- 操作按钮 -->
         <div style="margin-top: 20px; text-align: right">
           <el-button type="primary" :loading="saving" @click="handleSave"> 保存修改 </el-button>
-          <el-button @click="resetForm">重置</el-button>
+          <el-button @click="resetForm">重置</el-button
+          ><el-button
+            type="text"
+            :icon="isEditing ? 'Check' : 'Edit'"
+            @click="toggleEdit"
+            style="margin-left: 20px; margin-right: -30px"
+          >
+            {{ isEditing ? '确认' : '修改' }}
+          </el-button>
         </div>
       </el-form>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, nextTick, computed, watch } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -106,35 +118,43 @@ interface UserInfo {
   phone: string
   city: string
   remark: string
-  introduction: string
+  signature: string
 }
 
-const options = [
-  {
-    value: '男',
-    label: '男',
-  },
-  {
-    value: '女',
-    label: '女',
-  },
-]
+const genderOptions = ref([
+  { label: '男', value: 'male' },
+  { label: '女', value: 'female' },
+])
 
 // ---------- 响应式 ----------
 const size = ref<'default' | 'large' | 'small'>('default')
+const props = defineProps<{
+  userId?: number | string // 传入则查看他人，不传则查看自己
+}>()
+const canEdit = computed(() => !props.userId) // 只有查看自己时可编辑
 const loading = ref(false)
 const saving = ref(false)
 const formRef = ref<FormInstance>()
 const usernameInputRef = ref<any>()
-const gender = ref<string | null>(null) // 性别
 const userInfo = reactive<UserInfo>({
   username: '',
+  gender: '',
   phone: '',
   city: '',
   remark: '',
-  introduction: '',
+  email: '',
+  signature: '',
 })
 
+interface UserInfo {
+  username: string
+  gender: string
+  phone: string
+  city: string
+  remark: string
+  email: string
+  signature: string
+}
 const isEditing = ref(false) // 用户名编辑状态
 
 // ---------- 校验规则 ----------
@@ -146,27 +166,24 @@ const rules = reactive<FormRules<UserInfo>>({
   phone: [{ pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }],
 })
 
-// ---------- 获取用户名 ----------
 const fetchUsername = async () => {
+  console.log('fetchUsername 被调用,userId:', props.userId)
   const token = localStorage.getItem('access_token')
   if (!token) {
-    ElMessage.error('请先登录')
+    console.warn('未登录，请先登录')
     return
   }
-  loading.value = true
   try {
-    const response = await axios.get(`/shu/username/`, {
+    const url = props.userId ? `/shu/users/${props.userId}/` : '/shu/users/me/'
+    console.log('请求 URL:', url)
+    const res = await axios.get(url, {
       headers: { Authorization: `Bearer ${token}` },
     })
-    const data = response.data.data || response.data
-    if (data.username !== undefined) {
-      userInfo.username = data.username
-    }
-  } catch (error: any) {
-    console.error('获取用户名失败', error)
-    ElMessage.error(error.response?.data?.message || '获取用户名失败')
-  } finally {
-    loading.value = false
+    Object.assign(userInfo, res.data)
+    console.log('赋值后 userInfo:', userInfo)
+  } catch (error) {
+    console.error('获取用户信息失败', error)
+    ElMessage.error('获取用户信息失败')
   }
 }
 
@@ -218,7 +235,7 @@ const handleSave = async () => {
 
   saving.value = true
   try {
-    await axios.put('/shu/user/update/', userInfo, {
+    await axios.put('/shu/update_user/update_user/', userInfo, {
       headers: { Authorization: `Bearer ${token}` },
     })
     ElMessage.success('保存成功')
@@ -231,18 +248,25 @@ const handleSave = async () => {
 }
 
 // ---------- 重置 ----------
-const resetForm = () => {
-  if (!formRef.value) return
-  formRef.value.resetFields() // 清空所有字段（包括 username 会变为初始空）
-  // 重新获取用户名覆盖
-  fetchUsername()
-  isEditing.value = false
-}
-
-// ---------- 生命周期 ----------
 onMounted(() => {
   fetchUsername()
 })
+// 监听 userId 变化，重新获取数据
+watch(
+  () => props.userId,
+  () => {
+    fetchUsername()
+  },
+  { immediate: true },
+)
+// ---------- 生命周期 ----------
+// onMounted(
+//   () => props.userId,
+//   () => {
+//     fetchUsername()
+//   },
+//   { immediate: true },
+// )
 </script>
 
 <style scoped>
@@ -259,6 +283,6 @@ onMounted(() => {
 .user-prof {
   font-size: 14px;
   width: 200px;
-  margin-left: 200px;
+  margin-left: 30px;
 }
 </style>

@@ -1,4 +1,5 @@
 <template>
+  <!-- 主页页面 -->
   <div class="main-wai">
     <el-space fill style="height: 50px">
       <div class="main-shua">

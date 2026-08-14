@@ -28,6 +28,10 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
+      '/shu/comment/': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
       '/api/send/': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
@@ -74,6 +78,14 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/shu/history/': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+      '/shu': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+      '/shu/update_user/update_user/': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },

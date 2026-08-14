@@ -104,15 +104,15 @@ const formatTime = (isoString: string) => {
   return date.toLocaleDateString('zh-CN') // 超过一天显示日期
 }
 
+//跳转到用户详情页
 const goToUserProfile = (targetId: number | null) => {
   console.log('【触发点击】 targetId:', targetId)
   if (!targetId) return
-  router.push({ name: 'UserProfile', params: { id: targetId } })
+  router.push({
+    name: 'UserProfile',
+    params: { userId: String(targetId) }, // 注意：params 中的值会被转为字符串，但组件中接收为 number 也能兼容
+  })
 }
-// function onClear() {
-//   input.value = ''
-//   router.push({ name: 'SearchComponent2', query: {} }) // 清空时清除 query
-// }
 // --- 获取当前用户ID ---
 const fetchCurrentUser = async () => {
   const savedId = localStorage.getItem('user_id')
