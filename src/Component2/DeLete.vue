@@ -211,13 +211,12 @@ onMounted(() => {
 }
 .infinite-scroll-container {
   display: flex;
-  margin-left: 5%; /* 调整左侧边距 */
+  margin-left: 20%; /* 调整左侧边距 */
   flex-direction: column; /* 垂直排列 */
-  height: 570px; /* 固定高度，产生滚动条 */
+  height: 750px; /* 固定高度，产生滚动条 */
   width: 900px;
   overflow-y: auto; /* 只允许垂直滚动 */
   border: 3px solid rgb(234, 175, 108);
-  margin-right: 10px;
 }
 .infinite-list-item {
   display: flex;

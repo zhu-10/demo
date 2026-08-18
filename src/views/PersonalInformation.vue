@@ -1,22 +1,26 @@
 <template>
-  <!-- 用户详情页面 -->
+  <!-- 个人用户详情页面 -->
   <div class="user-prof">
     <div v-loading="loading" element-loading-text="加载中...">
       <el-form
         ref="formRef"
         :model="userInfo"
         :rules="rules"
-        label-width="80px"
-        style="max-width: 800px"
+        label-width="50px"
+        style="max-width: 200px"
       >
-        <el-descriptions title="用户信息" direction="vertical" :column="4" :size="size" border>
+        <el-descriptions title="用户信息" direction="vertical" :column="2" :size="size" border>
           <!-- 用户名：可切换编辑 -->
           <el-descriptions-item label="用户名">
             <div class="username-wrapper">
               <span v-if="!isEditMode" class="username-display">
                 {{ userInfo.username || '未设置' }}
               </span>
-              <el-form-item v-else prop="username" style="margin-bottom: 0; flex: 1">
+              <el-form-item
+                v-else
+                prop="username"
+                style="width: 300px; height: 30px; margin-bottom: 0; flex: 1"
+              >
                 <el-input
                   ref="usernameInputRef"
                   v-model="userInfo.username"
@@ -31,10 +35,17 @@
 
           <!-- 性别 -->
           <el-descriptions-item label="性别">
-            <el-form-item prop="gender">
+            <!-- 非编辑模式：显示文本 -->
+            <span v-if="!isEditMode">
+              {{
+                userInfo.gender === 'male' ? '男' : userInfo.gender === 'female' ? '女' : '未设置'
+              }}
+            </span>
+            <!-- 编辑模式：显示下拉框 -->
+            <el-form-item v-else prop="gender" style="width: 200px">
               <el-select
                 v-model="userInfo.gender"
-                placeholder="男/女"
+                placeholder="请选择性别"
                 style="width: 200px; margin-right: 20px"
               >
                 <el-option
@@ -49,55 +60,76 @@
 
           <!-- 电话 -->
           <el-descriptions-item label="电话">
-            <el-form-item prop="phone">
-              <el-input v-model="userInfo.phone" style="width: 240px" placeholder="请输入电话" />
+            <span v-if="!isEditMode">{{ userInfo.phone || '暂无' }}</span>
+            <el-form-item v-else prop="phone" style="margin-bottom: 0">
+              <el-input
+                v-model="userInfo.phone"
+                style="width: 200px; margin-right: 20px"
+                placeholder="请输入电话"
+              />
             </el-form-item>
           </el-descriptions-item>
 
           <!-- 城市 -->
           <el-descriptions-item label="城市" :span="2">
-            <el-form-item prop="city">
-              <el-input v-model="userInfo.city" style="width: 240px" placeholder="请输入城市" />
+            <span v-if="!isEditMode">{{ userInfo.city || '暂无' }}</span>
+            <el-form-item v-else prop="city" style="margin-bottom: 0">
+              <el-input
+                v-model="userInfo.city"
+                style="width: 200px; margin-right: 20px"
+                placeholder="请输入城市"
+              />
             </el-form-item>
           </el-descriptions-item>
 
           <!-- 备注 -->
           <el-descriptions-item label="备注">
-            <el-form-item prop="remark">
-              <el-input v-model="userInfo.remark" style="width: 240px" placeholder="请输入备注" />
+            <span v-if="!isEditMode">{{ userInfo.remark || '暂无' }}</span>
+            <el-form-item v-else prop="remark" style="margin-bottom: 0">
+              <el-input
+                v-model="userInfo.remark"
+                style="width: 200px; margin-right: 20px"
+                placeholder="请输入备注"
+              />
             </el-form-item>
           </el-descriptions-item>
 
           <!-- 邮箱 -->
           <el-descriptions-item label="邮箱">
-            <el-form-item prop="email">
-              <el-input v-model="userInfo.email" style="width: 240px" placeholder="请输入邮箱" />
+            <span v-if="!isEditMode">{{ userInfo.email || '暂无' }}</span>
+            <el-form-item v-else prop="email" style="margin-bottom: 0">
+              <el-input
+                v-model="userInfo.email"
+                style="width: 200px; margin-right: 60px"
+                placeholder="请输入邮箱"
+              />
             </el-form-item>
           </el-descriptions-item>
 
           <!-- 简介 -->
           <el-descriptions-item label="简介" :span="4">
-            <el-form-item prop="signature">
+            <span v-if="!isEditMode">{{ userInfo.signature || '暂无' }}</span>
+            <el-form-item v-else prop="signature">
               <el-input
                 v-model="userInfo.signature"
                 type="textarea"
                 :rows="3"
                 placeholder="请输入简介"
-                style="width: 100%"
+                style="width: 600px; margin-right: 20px; top: 10px"
               />
             </el-form-item>
           </el-descriptions-item>
         </el-descriptions>
 
         <!-- 操作按钮 -->
-        <div style="margin-top: 20px; text-align: right">
+        <div style="margin-top: 30px; width: 200px; margin-right: 600px; text-align: right">
           <el-button type="primary" :loading="saving" @click="handleSave"> 保存修改 </el-button>
           <el-button @click="resetForm">重置</el-button
           ><el-button
             link
             :icon="isEditMode ? 'Check' : 'Edit'"
             @click="toggleEdit"
-            style="margin-left: 20px; margin-right: -60px"
+            style="margin-right: -40px"
           >
             {{ isEditMode ? '确认' : '修改' }}
           </el-button>
@@ -262,11 +294,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.user-prof {
-  padding: 20px;
-}
 :deep(.el-descriptions__body .el-descriptions__table .el-descriptions__cell) {
-  padding: 12px 16px;
+  padding: 12px 130px;
 }
 
 .el-descriptions {
@@ -274,7 +303,8 @@ onMounted(() => {
 }
 .user-prof {
   font-size: 14px;
-  width: 200px;
-  margin-left: 30px;
+  margin-top: 130px;
+  width: 60vw;
+  margin-left: 340px;
 }
 </style>

@@ -296,7 +296,8 @@ onMounted(() => {
   width: 100%;
 }
 .main-shua {
-  margin-right: -70px; /* 调整右边距 */
+  margin-right: -100px; /* 调整右边距 */
+  margin-left: -100px; /* 调整左边距 */
   margin-top: 15px; /*向下移动*/
 }
 .rc {

@@ -2,10 +2,9 @@
   <!-- 获取用户私信列表，并支持点击进入聊天窗口 -->
   <div class="private-message">
     <div class="infinite-scroll-container" ref="scrollRef" @scroll="throttledScroll">
-      <!-- 会话列表 -->
       <div
         v-for="conv in conversationList"
-        :key="conv.id || conv.user?.id"
+        :key="conv.id"
         @click="openChatFromList(conv)"
         class="infinite-list-item"
       >
@@ -218,23 +217,36 @@ onDeactivated(() => {
   height: 100%;
   margin-left: -184px;
 }
-.infinite-scroll-container {
+.infinite-list-item {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
   height: 80px;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+.infinite-list-item {
+  background-color: #fffefe; /* 未读高亮背景 */
+}
+.infinite-list-item:hover {
+  background-color: #dfdfdf;
+}
+.infinite-scroll-container {
+  height: 30px;
   margin-top: 22px;
   width: 20%;
-  background-color: rgb(255, 255, 255);
 }
 .message-content h4 {
   width: 20px;
-  height: 8px;
-  margin-left: 20px;
+  margin-top: -5px;
+  margin-left: 10px;
   font-size: 14px;
 }
 .message-content p {
   font-size: 12px;
   color: #666;
   width: 60px;
-  height: 8px;
+  margin-top: -20px;
+  height: 4px;
   margin-left: 60px;
 }
 .message-content .time {

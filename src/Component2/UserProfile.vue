@@ -1,116 +1,45 @@
 <template>
-  <!-- 用户详情弹出框页面 -->
+  <!-- 好友用户详情页面 -->
   <div class="user-prof">
     <div v-loading="loading" element-loading-text="加载中...">
-      <el-form
-        ref="formRef"
-        :model="userInfo"
-        :rules="rules"
-        label-width="80px"
-        style="max-width: 800px"
-      >
-        <el-descriptions title="用户信息" direction="vertical" :column="4" :size="size" border>
-          <!-- 用户名：可切换编辑 -->
-          <el-descriptions-item label="用户名">
-            <div class="username-wrapper">
-              <span v-if="!isEditing" class="username-display">
-                {{ userInfo.username || '未设置' }}
-              </span>
-              <el-form-item v-else prop="username" style="margin-bottom: 0; flex: 1">
-                <el-input
-                  ref="usernameInputRef"
-                  v-model="userInfo.username"
-                  style="width: 200px"
-                  placeholder="请输入用户名"
-                  size="small"
-                  @keyup.enter="confirmEdit"
-                />
-              </el-form-item>
-            </div>
-          </el-descriptions-item>
+      <!-- 直接展示数据，不需要 el-form -->
+      <el-descriptions title="用户信息" direction="vertical" :column="2" border>
+        <el-descriptions-item label="用户名">
+          {{ userInfo.username || '未设置' }}
+        </el-descriptions-item>
 
-          <!-- 性别 -->
-          <el-descriptions-item label="性别">
-            <el-form-item prop="gender">
-              <el-select
-                v-model="userInfo.gender"
-                placeholder="男/女"
-                style="width: 200px; margin-right: -40px"
-              >
-                <el-option
-                  v-for="item in genderOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
-            </el-form-item>
-          </el-descriptions-item>
+        <el-descriptions-item label="性别">
+          {{ userInfo.gender === 'male' ? '男' : userInfo.gender === 'female' ? '女' : '未设置' }}
+        </el-descriptions-item>
 
-          <!-- 电话 -->
-          <el-descriptions-item label="电话">
-            <el-form-item prop="phone">
-              <el-input v-model="userInfo.phone" style="width: 240px" placeholder="请输入电话" />
-            </el-form-item>
-          </el-descriptions-item>
+        <el-descriptions-item label="电话">
+          {{ userInfo.phone || '暂无' }}
+        </el-descriptions-item>
 
-          <!-- 城市 -->
-          <el-descriptions-item label="城市" :span="2">
-            <el-form-item prop="city">
-              <el-input v-model="userInfo.city" style="width: 240px" placeholder="请输入城市" />
-            </el-form-item>
-          </el-descriptions-item>
+        <el-descriptions-item label="城市">
+          {{ userInfo.city || '暂无' }}
+        </el-descriptions-item>
 
-          <!-- 备注 -->
-          <el-descriptions-item label="邮箱">
-            <el-form-item prop="email">
-              <el-input v-model="userInfo.email" style="width: 240px" placeholder="请输入邮箱" />
-            </el-form-item>
-          </el-descriptions-item>
+        <el-descriptions-item label="备注">
+          {{ userInfo.remark || '暂无' }}
+        </el-descriptions-item>
 
-          <!-- 备注 -->
-          <el-descriptions-item label="备注">
-            <el-form-item prop="remark">
-              <el-input v-model="userInfo.remark" style="width: 240px" placeholder="请输入备注" />
-            </el-form-item>
-          </el-descriptions-item>
+        <el-descriptions-item label="邮箱">
+          {{ userInfo.email || '暂无' }}
+        </el-descriptions-item>
 
-          <!-- 简介 -->
-          <el-descriptions-item label="简介" :span="4">
-            <el-form-item prop="signature">
-              <el-input
-                v-model="userInfo.signature"
-                type="textarea"
-                :rows="3"
-                placeholder="请输入简介"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-descriptions-item>
-        </el-descriptions>
-
-        <!-- 操作按钮 -->
-        <div style="margin-top: 20px; text-align: right">
-          <el-button type="primary" :loading="saving" @click="handleSave"> 保存修改 </el-button>
-          <el-button @click="resetForm">重置</el-button
-          ><el-button
-            type="text"
-            :icon="isEditing ? 'Check' : 'Edit'"
-            @click="toggleEdit"
-            style="margin-left: 20px; margin-right: -30px"
-          >
-            {{ isEditing ? '确认' : '修改' }}
-          </el-button>
-        </div>
-      </el-form>
+        <!-- 简介占两列（若总列数为2，则 span=2 占一整行） -->
+        <el-descriptions-item label="简介" :span="2">
+          {{ userInfo.signature || '暂无' }}
+        </el-descriptions-item>
+      </el-descriptions>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick, computed, watch } from 'vue'
+import { ref, reactive, onMounted, compile, nextTick, watch } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
 
 // ---------- 类型 ----------
 interface UserInfo {
@@ -131,10 +60,7 @@ const size = ref<'default' | 'large' | 'small'>('default')
 const props = defineProps<{
   userId?: number | string // 传入则查看他人，不传则查看自己
 }>()
-const canEdit = computed(() => !props.userId) // 只有查看自己时可编辑
 const loading = ref(false)
-const saving = ref(false)
-const formRef = ref<FormInstance>()
 const usernameInputRef = ref<any>()
 const userInfo = reactive<UserInfo>({
   username: '',
@@ -155,17 +81,8 @@ interface UserInfo {
   email: string
   signature: string
 }
-const isEditing = ref(false) // 用户名编辑状态
 
-// ---------- 校验规则 ----------
-const rules = reactive<FormRules<UserInfo>>({
-  username: [
-    { required: true, message: '用户名不能为空', trigger: 'blur' },
-    { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' },
-  ],
-  phone: [{ pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }],
-})
-
+// 获取用户信息
 const fetchUsername = async () => {
   console.log('fetchUsername 被调用,userId:', props.userId)
   const token = localStorage.getItem('access_token')
@@ -210,43 +127,6 @@ const confirmEdit = () => {
   }
 }
 
-// ---------- 保存修改 ----------
-const handleSave = async () => {
-  if (!formRef.value) return
-
-  // 如果处于编辑状态，先退出（但保留内容）
-  if (isEditing.value) {
-    isEditing.value = false
-  }
-
-  // 表单校验
-  await formRef.value.validate((valid) => {
-    if (!valid) {
-      ElMessage.warning('请检查表单输入')
-      return
-    }
-  })
-
-  const token = localStorage.getItem('access_token')
-  if (!token) {
-    ElMessage.error('请先登录')
-    return
-  }
-
-  saving.value = true
-  try {
-    await axios.put('/shu/update_user/update_user/', userInfo, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    ElMessage.success('保存成功')
-  } catch (error: any) {
-    console.error('保存失败', error)
-    ElMessage.error(error.response?.data?.message || '保存失败，请重试')
-  } finally {
-    saving.value = false
-  }
-}
-
 // ---------- 重置 ----------
 onMounted(() => {
   fetchUsername()
@@ -270,19 +150,17 @@ watch(
 </script>
 
 <style scoped>
-.user-prof {
-  padding: 20px;
-}
 :deep(.el-descriptions__body .el-descriptions__table .el-descriptions__cell) {
-  padding: 12px 16px;
+  padding: 12px 150px;
 }
 
 .el-descriptions {
   margin-top: 20px;
 }
 .user-prof {
+  margin-top: 130px;
   font-size: 14px;
-  width: 200px;
-  margin-left: 30px;
+  width: 1000px;
+  margin-left: 400px;
 }
 </style>
