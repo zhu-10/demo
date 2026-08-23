@@ -61,7 +61,7 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
-      '/shu/chat/': {
+      '/shu/chat/<str:user_username>/': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },

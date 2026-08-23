@@ -24,7 +24,7 @@
       </div>
 
       <ChatDialog
-        v-if="currentChatUser?.id"
+        v-if="currentChatUser?.username"
         v-model:visible="dialogVisible"
         :user="currentChatUser"
         :currentUserId="currentUserId"

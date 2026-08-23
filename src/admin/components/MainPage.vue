@@ -19,7 +19,10 @@
                 type="textarea"
                 v-model="form.content"
                 size="large"
+                maxlength="300"
                 style="width: 400px"
+                show-word-limit
+                :count-graphemes="true"
                 placeholder="内容不超过300字"
               />
             </el-form-item>
@@ -138,7 +141,7 @@ const handleScroll = () => {
 
 // --- 上传相关 ---
 // 图片上传前校验
-const handleUpload = async (options) => {
+const beforeAvatarUpload = async (options) => {
   const { file, onSuccess, onError } = options
 
   // 前端大小校验（4MB）

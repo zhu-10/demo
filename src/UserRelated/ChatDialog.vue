@@ -14,12 +14,15 @@
         <div v-for="msg in messages" :key="msg.id" class="message-item">
           <span class="time">{{ formatTime(msg.create_time) }}</span>
           <div class="message-content">
-            <span class="sender" v-if="(msg.user?.id || msg.user) !== currentUserId">
-              {{ msg.user?.username || '私信' }}
+            <span class="sender" v-if="(msg.user?.username || msg.user) !== currentUsername">
+              {{ msg.sender || '私信' }}
+              <span class="content1">{{ msg.content }}</span>
             </span>
 
-            <span class="receiver" v-else style="color: #07c160">我</span>
-            <span class="content">{{ msg.content }}</span>
+            <span class="receiver" v-else="(msg.user?.username || msg.user) !== currentUsername">
+              {{ msg.receiver || '私信' }}
+              <span class="content2">{{ msg.content }}</span>
+            </span>
           </div>
         </div>
 
@@ -67,7 +70,7 @@ const emit = defineEmits<{
 
 // ---------- 响应式数据 ----------
 const messages = ref<any[]>([])
-const currentUserId = ref<number | null>(null)
+const currentUsername = ref<string | null>(null)
 const newMessage = ref('')
 const scrollRef = ref<HTMLElement | null>(null)
 const handleKeyup = ref('')
@@ -94,7 +97,7 @@ const formatTime = (ts: number) => {
 const fetchCurrentUser = async () => {
   const savedId = localStorage.getItem('user_id')
   if (savedId) {
-    currentUserId.value = Number(savedId)
+    currentUsername.value = Number(savedId)
     return
   }
   const token = localStorage.getItem('access_token')
@@ -140,7 +143,7 @@ const fetchMessages = async (direction: 'older' | 'newer') => {
     else page -= 1
     if (page < 1) page = 1
 
-    const res = await axios.get(`/api/chat/${props.user.id}/`, {
+    const res = await axios.get(`/api/chat/${props.user.username}/`, {
       params: { page, page_size: pageSize },
       headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
     })
@@ -276,7 +279,7 @@ onMounted(() => {
   /* flex-direction: column;  */
   width: 710px;
   height: 600px;
-  margin-left: 20px;
+  margin-left: 105px;
   overflow-y: auto; /* 添加这一行，允许垂直滚动 */
   /* 可选：美化滚动条 */
   scrollbar-width: thin;
@@ -296,16 +299,34 @@ onMounted(() => {
   width: 700px;
 }
 .message-content {
-  height: 70px;
-  margin-top: 40px;
+  height: 120px;
+  margin-top: 20px;
+  margin-left: 10px;
 }
 .receiver {
   margin-right: -100px;
-  margin-left: 600px;
+  margin-left: 800px;
 }
 /* 消息背景框 */
-.content {
+.content1 {
   margin-left: 15px;
+  margin-bottom: -10px;
+  display: inline-block; /* 宽度根据文字内容自适应 */
+  max-width: 180px; /* 限制最大宽度，防止太长撑爆布局 */
+  background-color: #f0f2f5; /* 浅灰色背景（柔和） */
+  padding: 4px 14px; /* 上下左右内边距 */
+  border-radius: 5px; /* 圆角，像气泡 */
+  cursor: pointer; /* 鼠标移上去变手型 */
+  transition: background 0.2s; /* 悬停过渡动画 */
+  white-space: nowrap; /* 强制一行显示 */
+  overflow: hidden; /* 超出部分隐藏 */
+  text-overflow: ellipsis; /* 超出显示省略号 */
+  font-size: 13px;
+  color: #333;
+  border: 1px solid #e4e7ed; /* 加个细边框，更有立体感 */
+}
+.content2 {
+  margin-left: 300px;
   margin-bottom: -10px;
   display: inline-block; /* 宽度根据文字内容自适应 */
   max-width: 180px; /* 限制最大宽度，防止太长撑爆布局 */

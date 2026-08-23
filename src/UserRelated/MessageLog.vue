@@ -212,6 +212,13 @@ onDeactivated(() => {
   height: 100%;
   margin-left: -184px;
 }
+.message-content:hover {
+  background-color: #dfdfdf;
+}
+.message-content {
+  height: 80px;
+  background-color: #fffefe; /* 未读高亮背景 */
+}
 .infinite-scroll-container {
   height: 80px;
   margin-top: 22px;
