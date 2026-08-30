@@ -255,7 +255,7 @@ const submitForm = async () => {
 
   loading.value = true
   try {
-    const res = await request.post('/shu/daily/', formData, {
+    const res = await request.get('/shu/list/public?page=1&size=10', formData, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'multipart/form-data', // 手动指定

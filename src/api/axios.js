@@ -7,10 +7,14 @@ const request = axios.create({
 })
 // 请求拦截器：统一在请求头中加入 token
 request.interceptors.request.use((config) => {
+  if (config.url.includes('/shu/register')) {
+        return config;  // 直接返回 config，不添加 Authorization
+    }
   const token = localStorage.getItem('access_token') // 从localStorage获取 token
 
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    config.headers.Authorization = `Bearer ${token}`;
+    console.log('✅ 最终 Authorization 头:', config.headers.Authorization);
   } // 设置Authorization头
   return config
 })

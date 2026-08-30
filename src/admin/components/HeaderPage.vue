@@ -112,31 +112,44 @@ function onClear() {
   router.push({ name: 'SearchComponent2', query: {} }) // 清空时清除 query
 }
 const fetchUserInfo = async () => {
-  const token = localStorage.getItem('access_token') // 先定义 token
+  const token = localStorage.getItem('access_token');
   if (!token) {
-    // 没有 token，跳转到登录页
-    router.push('/1')
-    return
+    router.push('/1');
+    return;
   }
-  const res = await fetch('/shu/username/', {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json', // 确保发送 JSON 请求
-    },
-  })
-  try {
-    // 替换成你的真实 API
 
-    const data = await res.json()
-    userInfo.value = data // 假设 data 包含 username 字段
+  try {
+    const res = await fetch('/api/username/', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    // 先检查状态码，再决定如何读取
+    if (!res.ok) {
+      // 错误响应：尝试解析为 JSON，失败则转为文本
+      let errorMsg = `请求失败，状态码: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        errorMsg = errorData.msg || errorMsg;
+      } catch {
+        // 不是 JSON，则获取文本
+        const text = await res.text();
+        errorMsg = text || errorMsg;
+      }
+      throw new Error(errorMsg);
+    }
+
+    // 成功响应：直接解析 JSON
+    const data = await res.json();
+    userInfo.value = data;
+    console.log('用户信息:', data);
   } catch (error) {
-    console.error('获取用户信息失败', error)
-    ElMessage.error('获取用户信息失败')
-    userInfo.value = null
+    console.error('获取用户信息失败', error);
+    ElMessage.error(error.message || '获取用户信息失败');
+    userInfo.value = null;
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 //配置跳转路由
 const handleCommand = (command) => {
   switch (command) {

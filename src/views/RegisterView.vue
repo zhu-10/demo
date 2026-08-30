@@ -28,10 +28,10 @@
             show-password
           />
         </el-form-item>
-        <el-form-item prop="password_captcha">
+        <el-form-item prop="captcha">
           <el-input
-            v-model="registerForm.verification"
-            type="verification"
+            v-model="registerForm.captcha"
+            type="captcha"
             placeholder="请输入验证码"
             prefix-icon="Bell"
             size="large"
@@ -58,7 +58,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { register } from '../api/auth'
@@ -67,48 +67,56 @@ const router = useRouter()
 const loading = ref(false)
 
 // 注册表单数据
-const registerForm = reactive({
+const registerForm = ref({
   username: '',
   password: '',
-  verification: '',
+  captcha: '',
 })
 
 // 表单验证规则
 const rules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '用户名长度在 3 到 20 个字符', trigger: 'blur' },
+    { min: 1, max: 20, message: '用户名长度在 1 到 20 个字符', trigger: 'blur' },
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' },
+    { min: 6, max: 8, message: '密码长度在 6 到 8 个字符', trigger: 'blur' },
   ],
-  verification: [
+  captcha: [
     { required: true, message: '请输入验证码', trigger: 'blur' },
-    { min: 6, message: '验证码长度不能少于6位', trigger: 'blur' },
+    { min: 6, max: 6, message: '验证码长度必须为6位', trigger: 'blur' },
   ],
 }
 
 // 处理注册
 const registerFormRef = ref(null)
 const handleRegister = async () => {
+
+  // 验证表单
+  if (!registerFormRef.value) return
   try {
     await registerFormRef.value.validate()
-    loading.value = true
-    const response = await register(registerForm)
-    // 保存token到localStorage
-    localStorage.setItem('access_token', response.access)
-    localStorage.setItem('refresh_token', response.refresh)
-    // 提示语
+  } catch {
+    return
+  }
+
+  loading.value = true
+  console.log('表单数据:', registerForm.value) // 验证表单
+  try {
+    const data = await register({
+      username: registerForm.value.username,
+      password: registerForm.value.password,
+      captcha: registerForm.value.captcha,
+    })
+    localStorage.setItem('access_token', data.access)
+    localStorage.setItem('refresh_token', data.refresh)
     ElMessage.success('注册成功')
-    // 跳转到内容页面
     router.push('/1')
-    //
   } catch (err) {
-    console.error('注册失败:', err)
-    ElMessage.error('注册失败，请检查输入信息')
+    ElMessage.error(err.response?.data?.message || '注册失败')
   } finally {
-    loading.value = false //无论成功失败都停止加载
+    loading.value = false
   }
 }
 </script>

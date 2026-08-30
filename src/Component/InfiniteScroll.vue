@@ -77,55 +77,43 @@ const openChatFromList = async (item: any) => {
     ElMessage.error('无法获取用户信息')
   }
 }
-// 获取数据（合并两个接口）
+// 获取数据
+// 获取公开作品列表（用于广场/他人主页）
 const fetchMergedData = async () => {
   const token = localStorage.getItem('access_token')
+  // 如果没登录、正在加载、或已加载完，则停止
   if (!token || loading.value || noMore.value) return
 
   loading.value = true
   try {
-    const [res1, res2] = await Promise.all([
-      axios.get('/shu/daily/', {
-        params: { page: currentPage.value, page_size: pageSize },
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      axios.get('/api/PublicPostListView/', {
-        params: { page: currentPage.value, page_size: pageSize },
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-    ])
-
-    // ✅ 修正：直接取数组（如果接口返回的就是数组）
-    const data1 = Array.isArray(res1.data) ? res1.data : res1.data?.results || []
-    const data2 = Array.isArray(res2.data) ? res2.data : res2.data?.results || []
-
-    // 过滤掉无效数据（如果不需要过滤可以去掉 .filter）
-    const valid1 = data1.filter((item) => item && item.id != null)
-    const valid2 = data2.filter((item) => item && item.id != null)
-
-    // 合并去重（以 id 为键，如果 id 可能冲突，可改用 `${id}_${source}`）
-    const mergedMap = new Map()
-    // 保留已有数据
-    tableData.value.forEach((item) => mergedMap.set(item.id, item))
-    ;[...valid1, ...valid2].forEach((item) => {
-      if (!mergedMap.has(item.id)) {
-        mergedMap.set(item.id, item)
-      }
+    // 请求公开作品（后端接口需保证只返回 isPublic = 1 的数据）
+    const response = await request.post('/shu/daily/', {
+      params: {
+        page: currentPage.value,
+        page_size: pageSize,
+        // 如果后端没默认过滤，可以显式传参告诉后端要公开的
+        // is_public: 1
+      },
+      headers: { Authorization: `Bearer ${token}` },
     })
-    tableData.value = Array.from(mergedMap.values())
 
-    // 判断是否还有更多（分别判断两个接口是否都返回了完整页）
-    const hasMore1 = data1.length === pageSize
-    const hasMore2 = data2.length === pageSize
-    // 只要有一个接口还有更多，就允许翻页；否则停止
-    if (!hasMore1 && !hasMore2) {
-      noMore.value = true
+    // 假设后端返回格式为 { list: [...], total: 0 }
+    // 如果直接返回数组，则改成 const newData = response.data
+    const newData = response.data.list || response.data || []
+
+    // 将新数据追加到表格/列表中（如果是下拉加载更多）
+    tableData.value = [...tableData.value, ...newData]
+
+    // 判断是否还有更多数据（分页停止条件）
+    const total = response.data.total || 0
+    if (tableData.value.length >= total) {
+      noMore.value = true // 全部加载完毕
     } else {
-      currentPage.value++ // 只有有更多时才递增
+      currentPage.value++ // 页码加1，准备加载下一页
     }
   } catch (err) {
-    console.error('请求合并数据失败', err)
-    // 可显示错误提示
+    console.error('请求公开作品失败', err)
+    // 可以给用户一个轻提示
   } finally {
     loading.value = false
   }

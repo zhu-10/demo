@@ -16,15 +16,15 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
+      '/shu/list/': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
       '/api/searchView/': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
-      '/shu/username/': {
-        target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
-      },
-      '/api/PublicPostListView/': {
+      '/api/username/': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
@@ -81,10 +81,10 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
-      '/shu': {
-        target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
-      },
+      // '/shu': {
+      //   target: 'http://127.0.0.1:8000',
+      //   changeOrigin: true,
+      // },
       '/shu/update_user/update_user/': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,

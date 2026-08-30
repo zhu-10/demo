@@ -78,39 +78,34 @@ const isIndeterminate = computed(() => {
 })
 
 // ---- 获取列表数据 ----
-const fetchList = async (page: number = 1, append: boolean = false) => {
-  if (loading.value) return
+const fetchList = async () => {
+  const token = localStorage.getItem('access_token')
+  if (!token || loading.value || noMore.value) return
+
   loading.value = true
   try {
-    const token = localStorage.getItem('access_token')
-    const response = await request.get('/shu/daily/', {
-      params: { page, page_size: 20 },
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    const response = await axios.get('/shu/daily/', {
+      params: { page: currentPage.value, page_size: pageSize },
+      headers: { Authorization: `Bearer ${token}` },
     })
-    const rawData = response.data.results || response.data
-    const newData = rawData
-      .filter((item) => item.id != null)
-      .map((item) => ({ ...item, id: Number(item.id) }))
-      .filter((item) => !isNaN(item.id) && item.id > 0)
-    if (newData.length !== rawData.length) {
-      console.warn(`过滤掉了 ${rawData.length - newData.length} 条缺少有效 id 的数据`)
-    }
-    if (append) {
-      tableData.value.push(...newData)
+    // 假设返回格式为 { list: [...], total: number } 或直接数组
+    const newData = response.data.list || response.data
+    // 追加到现有列表（若分页）
+    tableData.value = [...tableData.value, ...newData]
+
+    // 判断是否还有更多
+    const total = response.data.total || 0
+    if (tableData.value.length >= total) {
+      noMore.value = true
     } else {
-      tableData.value = newData
-      selectedIds.value = [] // 刷新时清空选中
+      currentPage.value++   // 下一页
     }
-    hasMore.value = newData.length > 0 && !!response.data.next
-    currentPage.value = page
-  } catch (error) {
-    ElMessage.error('加载失败')
-    console.error(error)
+  } catch (err) {
+    console.error('请求失败', err)
   } finally {
     loading.value = false
   }
 }
-
 // ---- 滚动加载更多 ----
 const handleScroll = (e: Event) => {
   const target = e.target as HTMLElement

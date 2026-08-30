@@ -1,3 +1,4 @@
+-- Active: 1767526722355@@127.0.0.1@3306@demo
 <template>
   <div class="login">
     <el-form ref="formRef" :rules="rules" :model="form" style="max-width: 600px">
@@ -72,7 +73,7 @@ const loading = ref(false) // 登录按钮加载状态
 // 提交登录
 const onSubmit = async () => {
   try {
-    const response = await axios.post('/shu/login/', {
+    const response = await axios.post('/api/login/', {
       username: form.username,
       password: form.password,
     })
@@ -80,13 +81,17 @@ const onSubmit = async () => {
     console.log('响应数据:', response.data)
 
     // 提取 token（根据实际字段名调整）
-    const token = response.data.access || response.data.token
+    const token = response.data.data || response.data.token
     if (token) {
       localStorage.setItem('access_token', token)
-    }
+      console.log('Token 已保存:', token)
+    } else {
+  ElMessage.error('登录返回数据异常，未包含 token')
+  return
+}
 
     // 提取用户 ID（根据实际结构调整）
-    const userId = response.data.user?.id || response.data.id || response.data.user_id
+  const userId = response.data.user?.id || response.data.id || response.data.user_id
     if (userId) {
       localStorage.setItem('user_id', String(userId))
       console.log('用户ID已保存:', userId)

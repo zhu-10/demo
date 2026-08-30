@@ -16,6 +16,9 @@ export default createStore({
   mutations: {
     //更新user信息方法
     setUser(state, userdata) {
+      console.warn('🔴 setUser 被调用，userdata:', userdata);
+      console.warn('🔴 token 内容:', userdata.token);
+      console.warn('🔴 token 长度:', userdata.token?.length);
       state.user.id = userdata.id
       state.user.username = userdata.username
       state.user.token = userdata.token
