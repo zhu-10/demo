@@ -62,7 +62,7 @@
 <script lang="ts" setup>
 import { ref, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import axios from 'axios'
+import request from 'axios'
 
 const props = defineProps({
   visible: Boolean, // 是否显示对话框
@@ -109,7 +109,7 @@ const fetchUserInfo = async () => {
     return
   }
   try {
-    const res = await axios.get('/shu/username/', {
+    const res = await request.get('/api/username/', {
       headers: { Authorization: `Bearer ${token}` },
     })
     userInfo.value = res.data
@@ -150,8 +150,8 @@ const sendMessage = async () => {
 
   sendingMessage.value = true
   try {
-    await axios.post(
-      '/api/send/',
+    await request.post(
+      '/shu/send/',
       {
         receiver: userId, // 字段名改为 receiver_id
         content: contentMessage.value,
@@ -178,7 +178,9 @@ const sendMessage = async () => {
 
 // --- 添加好友 ---
 const addFriend = async () => {
-  const userId = props.user?.id
+  console.log('🔍 props.user 的值是:', props.user) // 加这一行
+  console.log('🔍 props.user 的所有键:', props.user ? Object.keys(props.user) : 'props.user 为空') // 加这一行
+  const userId = props.user?.id // 确保这里拿到的是数字ID
   if (!userId) {
     ElMessage.error('用户信息不完整')
     return
@@ -192,10 +194,10 @@ const addFriend = async () => {
 
   addingFriend.value = true
   try {
-    await axios.post(
-      '/api/friends/',
+    await request.post(
+      '/shu/friends/',
       {
-        to_user_id: userId, // 使用用户ID
+        userId: userId, // 🟢 传真正的数字ID
       },
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -205,12 +207,13 @@ const addFriend = async () => {
   } catch (error) {
     console.error('添加好友失败:', error)
     console.log('后端错误响应:', error.response?.data) // 打印后端错误响应
-    console.log('🔍 准备发送的 userId:', userId)
+    console.log('🔍 准备发送的 friendId:', friendId)
     ElMessage.error('添加好友失败，请稍后重试')
   } finally {
     addingFriend.value = false
-  }
 }
+}
+
 
 // --- 关闭弹窗 ---
 const handleClose = () => {

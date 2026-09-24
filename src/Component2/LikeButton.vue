@@ -6,7 +6,7 @@
     </el-badge>
   </div>
   <!-- 评论按钮 -->
-  <Popover v-if="post" v-model:comment="post.comment" />
+  <Popover v-if="post" v-model:comment="post.comment" :shuId="post.id"/>
 </template>
 
 <script setup>
@@ -16,6 +16,7 @@ import Popover from './Popover.vue'
 import { Star, StarFilled } from '@element-plus/icons-vue'
 
 const post = ref({
+  id: 1,
   title: '示例帖子',
   comment: 0, // 评论数
 })

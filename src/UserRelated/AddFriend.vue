@@ -3,7 +3,7 @@
   <el-dialog v-model="visible" width="700px" @close="handleClose">
     <div v-loading="loading" element-loading-text="加载中...">
       <el-table :data="friendList" style="width: 100%" v-if="friendList.length">
-        <el-table-column prop="from_username" label="用户名" />
+        <el-table-column prop="friendName" label="用户名" />
         <el-table-column label="操作" width="120">
           <template #default="{ row }">
             <el-button size="small" type="primary" @click="sendMessage(row)">添加</el-button>
@@ -25,8 +25,8 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import request from '../api/axios'
 
 const props = defineProps(['modelValue'])
 const emit = defineEmits(['update:modelValue'])
@@ -61,10 +61,11 @@ const fetchFriendList = async () => {
       ElMessage.error('请先登录')
       return
     }
-    const response = await axios.get('/shu/friendship/', {
+    const response = await request.get('/shu/friendship/', {
       headers: { Authorization: `Bearer ${token}` },
     })
-    friendList.value = response.data // 期望返回 [{id, username}, ...]
+    const resData = response.data
+    friendList.value = Array.isArray(resData) ? resData : (resData.data || [])  // 期望返回 [{id, friendName}, ...]
   } catch (error) {
     console.error('获取好友申请失败:', error)
     ElMessage.error('加载失败')
@@ -73,7 +74,7 @@ const fetchFriendList = async () => {
   }
 }
 
-//删除好友(拒绝添加好友)
+//删除好友申请(拒绝添加好友)
 const deleteFriend = async (row) => {
   try {
     const token = localStorage.getItem('access_token')
@@ -81,10 +82,10 @@ const deleteFriend = async (row) => {
       ElMessage.error('请先登录')
       return
     }
-    await axios.delete(`/shu/friendship/${row.id}/`, {
+    await request.delete(`/shu/refuse/${row.id}/`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-    ElMessage.success(`已删除 ${row.from_username} 的申请`)
+    ElMessage.success(`已删除 ${row.friendName} 的申请`)
     // 刷新列表
     await fetchFriendList()
   } catch (error) {
@@ -105,15 +106,15 @@ const sendMessage = async (row) => {
       ElMessage.error('申请记录 ID 不存在')
       return
     }
-    await axios.post(
-      `/api/handle/${requestId}/`,
+    await request.post(
+      `/shu/handle/${row.id}/`,
       { action: 'accept' },
 
       {
         headers: { Authorization: `Bearer ${token}` },
       },
     )
-    ElMessage.success(`已同意 ${row.from_username} 的申请`)
+    ElMessage.success(`已同意 ${row.friendName} 的申请`)
     // 刷新列表
     await fetchFriendList()
   } catch (error) {

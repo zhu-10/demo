@@ -1,42 +1,44 @@
 <template>
   <!-- 好友聊天弹窗 -->
   <el-dialog
-    v-model="dialogVisible"
-    :title="props.user?.username || '匿名用户'"
+    :model-value="props.visible"
+    :title="props.user?.friendName || '匿名用户'"
+    @update:model-value="emit('update:visible', $event)"
     @close="handleClose"
     destroy-on-close
   >
     <div class="chat-container">
       <div class="message-list" ref="scrollRef" @scroll="handleScroll">
-        <!-- 顶部加载状态（可选） -->
         <div v-if="loadingNewer" class="load-tip">加载更新中...</div>
 
         <div v-for="msg in messages" :key="msg.id" class="message-item">
           <span class="time">{{ formatTime(msg.created_at) }}</span>
           <div class="message-content">
+            <!-- 对方发的消息 -->
             <span
-              class="sender"
               v-if="currentUserId !== null && Number(msg.sender?.id) !== Number(currentUserId)"
+              class="sender"
             >
-              <el-link
-                class="sender"
-                v-if="currentUserId !== null && Number(msg.sender?.id) !== Number(currentUserId)"
-                @click="goToUserProfile(msg.sender)"
-              >
+              <el-link @click="goToUserProfile(msg.sender)">
                 {{ msg.sender_detail?.username || '未知用户' }}
               </el-link>
             </span>
-            <span class="receiver" v-else style="color: #07c160">我</span>
+            <!-- 自己发的消息 -->
+            <span v-else class="receiver" style="color: #07c160">我</span>
+
             <span class="content">{{ msg.content }}</span>
           </div>
         </div>
 
-        <!-- 底部加载状态 -->
         <div v-if="loadingOlder" class="load-tip">加载更早消息中...</div>
       </div>
 
       <div class="input-area">
-        <el-input v-model="handleKeyup" @keyup.enter="sendMessage" placeholder="输入消息...">
+        <el-input
+          v-model="newMessage"
+          @keyup.enter="sendMessage"
+          placeholder="输入消息..."
+        >
           <template #suffix>
             <el-button
               :loading="sendingMessage"
@@ -44,8 +46,9 @@
               type="primary"
               round
               size="small"
-              >发送</el-button
             >
+              发送
+            </el-button>
           </template>
         </el-input>
       </div>
@@ -57,7 +60,7 @@
 import { ref, nextTick, watch, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { throttle } from 'lodash-es'
-import axios from 'axios'
+import request from '../api/axios'
 import { useRouter } from 'vue-router'
 const sendingMessage = ref(false) // 是否正在发送消息
 const router = useRouter()
@@ -67,11 +70,10 @@ const currentUser = ref<{ username: string } | null>(null)
 // ---------- Props & Emits ----------
 const props = defineProps<{
   visible: boolean
-  user: { id: number; username: string } | null
-  currentUserId: number
+  user: { id: number; friendName?: string; username?: string } | null
+  currentUserId: number | null
 }>()
 const emit = defineEmits(['update:visible'])
-
 // ---------- 响应式数据 ----------
 const messages = ref<any[]>([])
 const currentUserId = ref<number | null>(null)
@@ -115,61 +117,43 @@ const goToUserProfile = (targetId: number | null) => {
 }
 // --- 获取当前用户ID ---
 const fetchCurrentUser = async () => {
+  // 如果 props.currentUserId 已经有值，就不用取
+  if (props.currentUserId) return
   const savedId = localStorage.getItem('user_id')
-  if (savedId) {
-    currentUserId.value = Number(savedId)
-    return
-  }
+  if (savedId) return
   const token = localStorage.getItem('access_token')
-  if (!token) {
-    router.push('/1')
-    return
-  }
+  if (!token) return router.push('/1')
   try {
-    const res = await fetch('/shu/username/', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+    const res = await request.get('/shu/username/', {
+      headers: { Authorization: `Bearer ${token}` },
     })
-    const data = await res.json()
-    currentUser.value = data // 假设 data 有 username 字段
-  } catch (error) {
-    console.error('获取用户信息失败', error)
-    ElMessage.error('获取用户信息失败')
-    console.log('子组件收到的 user:', props.user)
+    currentUser.value = res.data      // ✅ 不是 res.json()
+  } catch (e) {
+    console.error('获取用户信息失败', e)
   }
 }
+
 // ---------- 核心加载函数 ----------
 //获取消息列表
 const fetchMessages = async (direction: 'older' | 'newer') => {
-  // 防止无用户
-  if (!props.user?.id) {
-    ElMessage.warning('请先选择聊天对象')
-    return
-  }
-
-  // 防重复和边界判断
-  if (direction === 'older') {
-    if (loadingOlder.value || !hasOlder.value) return
-    loadingOlder.value = true
-  } else {
-    if (loadingNewer.value || !hasNewer.value) return
-    loadingNewer.value = true
-  }
-
+  console.log('④ fetchMessages 被调用, direction =', direction, 'user.id =', props.user?.id)
+  if (!props.user?.id) return ElMessage.warning('请先选择聊天对象')
+  // ... 省略防重复 ...
   try {
     let page = currentPage.value
-    if (direction === 'older') page += 1
-    else page -= 1
-    if (page < 1) page = 1
+    page = direction === 'older' ? page + 1 : Math.max(1, page - 1)
 
-    const res = await axios.get(`/shu/history/`, {
-      params: { page, page_size: pageSize },
+    const res = await request.get('/shu/history/', {
+      params: {
+        page,
+        pageSize: pageSize,          // ✅ 驼峰
+        friendId: props.user.id,     // ✅ 驼峰
+      },
       headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
     })
 
-    const newData = res.data.results || res.data || []
+    const newData = res.data?.results ?? res.data ?? []
+
     const totalPages = res.data.total_pages || 1
 
     if (direction === 'older') {
@@ -204,10 +188,7 @@ const fetchMessages = async (direction: 'older' | 'newer') => {
 }
 //发送消息
 const sendMessage = async () => {
-  if (!handleKeyup.value.trim()) {
-    ElMessage.warning('请输入消息内容')
-    return
-  }
+  if (!newMessage.value.trim()) return ElMessage.warning('请输入消息内容')
 
   const userId = props.user?.id
   if (!userId) {
@@ -223,18 +204,18 @@ const sendMessage = async () => {
 
   sendingMessage.value = true
   try {
-    await axios.post(
+    await request.post(
       '/shu/chat/',
       {
-        receiver: userId,
-        content: handleKeyup.value,
+        receiver: props.user?.id,
+        content: newMessage.value,
       },
       {
         headers: { Authorization: `Bearer ${token}` },
       },
     )
     ElMessage.success('发送成功')
-    handleKeyup.value = ''
+    newMessage.value = ''  // 清空输入框
     await fetchMessages('newer')
   } catch (error: any) {
     const msg = error.response?.data?.detail || '发送失败'
@@ -288,6 +269,7 @@ watch(
 onMounted(() => {
   fetchCurrentUser()
 })
+
 </script>
 
 <style scoped>

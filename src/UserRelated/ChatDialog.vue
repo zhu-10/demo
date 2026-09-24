@@ -11,20 +11,28 @@
         <!-- 顶部加载状态（可选） -->
         <div v-if="loadingNewer" class="load-tip">加载更新中...</div>
 
-        <div v-for="msg in messages" :key="msg.id" class="message-item">
-          <span class="time">{{ formatTime(msg.create_time) }}</span>
-          <div class="message-content">
-            <span class="sender" v-if="(msg.user?.username || msg.user) !== currentUsername">
-              {{ msg.sender || '私信' }}
-              <span class="content1">{{ msg.content }}</span>
-            </span>
+        <div v-for="(msg, index) in messages" :key="msg?.id ?? index" class="message-item">
+          <template v-if="msg">
+            <span class="time">{{ formatTime(msg.createTime) }}</span>
 
-            <span class="receiver" v-else="(msg.user?.username || msg.user) !== currentUsername">
-              {{ msg.receiver || '私信' }}
-              <span class="content2">{{ msg.content }}</span>
-            </span>
-          </div>
-        </div>
+            <div class="message-content" :class="msg.senderId == currentUserId ? 'is-me' : 'is-other'">
+
+              <!-- 别人发的消息（左侧）：显示对方的 senderName -->
+              <span class="sender" v-if="msg.senderId !== currentUserId">
+                  {{ msg.senderName || '未知用户' }}
+                  <span class="content1">{{ msg.content }}</span>
+              </span>
+
+              <!-- 我发的消息（右侧）：通常不显示名字，或者显示“我” -->
+              <span class="receiver" v-else>
+                <span class="content2">{{ msg.content }}</span>
+                  <!-- 建议改成：我 或者不写名字 -->
+                  <span class="sender" style="color: #07c160">我</span>
+
+              </span>
+            </div>
+          </template>
+      </div>
 
         <!-- 底部加载状态 -->
         <div v-if="loadingOlder" class="load-tip">加载更早消息中...</div>
@@ -52,7 +60,7 @@
 import { ref, nextTick, watch, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { throttle } from 'lodash-es'
-import axios from 'axios'
+import request from 'axios'
 import { useRouter } from 'vue-router'
 const sendingMessage = ref(false) // 是否正在发送消息
 const router = useRouter()
@@ -70,7 +78,7 @@ const emit = defineEmits<{
 
 // ---------- 响应式数据 ----------
 const messages = ref<any[]>([])
-const currentUsername = ref<string | null>(null)
+const currentUserId = ref<number | null>(null)
 const newMessage = ref('')
 const scrollRef = ref<HTMLElement | null>(null)
 const handleKeyup = ref('')
@@ -95,32 +103,53 @@ const formatTime = (ts: number) => {
 }
 // --- 获取当前用户ID ---
 const fetchCurrentUser = async () => {
+  // 1. 先从本地缓存拿ID（快速渲染，防止页面闪烁）
   const savedId = localStorage.getItem('user_id')
   if (savedId) {
-    currentUsername.value = Number(savedId)
-    return
+    currentUserId.value = Number(savedId)
   }
+
+  // 2. 检查 Token
   const token = localStorage.getItem('access_token')
   if (!token) {
     router.push('/1')
     return
   }
+
+  // 3. 请求后端获取完整用户信息
   try {
-    const res = await fetch('/shu/username/', {
+    const res = await request.get('/api/username/', {
       headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+        Authorization: `Bearer ${token}`
+      }
     })
-    const data = await res.json()
-    currentUser.value = data // 假设 data 有 username 字段
+
+    // 根据后端真实返回结构提取数据
+    // 假设后端返回的是 { code: 200, data: { id: 1, username: 'root' } }
+    // 如果后端直接返回 { id: 1, username: 'root' }，则用 res.data
+    const userData = res.data?.data || res.data
+
+    // 4. 安全赋值
+    if (userData) {
+      // 提取用户名
+      if (userData.username) {
+        currentUser.value = userData.username
+      }
+
+      // ⚠️ 关键核心：提取并强制转换 ID 为 Number 类型！
+      // 这一步直接决定了你聊天框的 is-me / is-other 判断能不能生效
+      if (userData.id) {
+        currentUserId.value = Number(userData.id)
+        localStorage.setItem('user_id', userData.id) // 保持本地同步
+      }
+    }
   } catch (error) {
     console.error('获取用户信息失败', error)
     ElMessage.error('获取用户信息失败')
   }
 }
 // ---------- 核心加载函数 ----------
-//获取私信列表
+//获取私信数据，并更新hasOlder和hasNewer
 const fetchMessages = async (direction: 'older' | 'newer') => {
   // 防止无用户
   if (!props.user?.id) {
@@ -136,20 +165,21 @@ const fetchMessages = async (direction: 'older' | 'newer') => {
     if (loadingNewer.value || !hasNewer.value) return
     loadingNewer.value = true
   }
-
   try {
     let page = currentPage.value
     if (direction === 'older') page += 1
     else page -= 1
     if (page < 1) page = 1
 
-    const res = await axios.get(`/api/chat/${props.user.username}/`, {
+    const res = await request.get(`/shu/chat/`, {
       params: { page, page_size: pageSize },
       headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
     })
 
-    const newData = res.data.results || res.data || []
-    const totalPages = res.data.total_pages || 1
+    const responseData = res.data.data || res.data // 兼容不同封装情况
+    const newData = responseData.records || []     // 提取 records 数组
+    const totalPages = responseData.pages || 0     // 提取 pages
+     console.log('解析出的消息列表:', newData)
 
     if (direction === 'older') {
       messages.value = [...messages.value, ...newData]
@@ -200,8 +230,8 @@ const sendMessage = async () => {
 
   sendingMessage.value = true
   try {
-    await axios.post(
-      '/api/send/',
+    await request.post(
+      '/shu/send/',
       {
         receiver_id: userId,
         content: handleKeyup.value,
@@ -277,9 +307,8 @@ onMounted(() => {
 
 .message-list {
   /* flex-direction: column;  */
-  width: 710px;
+  width: 100%;
   height: 600px;
-  margin-left: 105px;
   overflow-y: auto; /* 添加这一行，允许垂直滚动 */
   /* 可选：美化滚动条 */
   scrollbar-width: thin;
@@ -287,7 +316,7 @@ onMounted(() => {
 }
 
 .time {
-  margin-left: 240px; /* 调整时间戳的位置 */
+  margin-left: 300px; /* 调整时间戳的位置 */
 }
 
 .el-input {
@@ -299,17 +328,25 @@ onMounted(() => {
   width: 700px;
 }
 .message-content {
-  height: 120px;
-  margin-top: 20px;
-  margin-left: 10px;
+    display: flex;
+    width: 100%; /* ⚠️ 必须加！ */
+    height: 40px; /* ⚠️ 必须加！ */
+    box-sizing: border-box;
+    margin: 30px 30px;
+    /* 删掉之前的 height: 100px; 让高度自适应 */
 }
-.receiver {
-  margin-right: -100px;
-  margin-left: 800px;
+/* 2. 自己发消息靠右 */
+.message-content.is-me {
+  justify-content: flex-end;
+}
+
+/* 3. 别人发消息靠左 */
+.message-content.is-other {
+    justify-content: flex-start;
 }
 /* 消息背景框 */
 .content1 {
-  margin-left: 15px;
+  margin-left: 15px;  /* 调整消息框与左边框的距离 */
   margin-bottom: -10px;
   display: inline-block; /* 宽度根据文字内容自适应 */
   max-width: 180px; /* 限制最大宽度，防止太长撑爆布局 */
@@ -326,8 +363,8 @@ onMounted(() => {
   border: 1px solid #e4e7ed; /* 加个细边框，更有立体感 */
 }
 .content2 {
-  margin-left: 300px;
-  margin-bottom: -10px;
+  margin-bottom: -8px;
+  margin-right: 20px;
   display: inline-block; /* 宽度根据文字内容自适应 */
   max-width: 180px; /* 限制最大宽度，防止太长撑爆布局 */
   background-color: #f0f2f5; /* 浅灰色背景（柔和） */

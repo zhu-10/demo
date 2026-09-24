@@ -29,7 +29,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import UserDetails from '../UserRelated/UserDetails.vue'
 import LikeButton from '../Component2/LikeButton.vue'
-import axios from 'axios'
+import request from '../api/axios.js'
 const currentPage = ref(1) // 当前页码
 const tableData = ref([]) // 数据列表
 const list = ref([]) // 数据列表
@@ -43,7 +43,7 @@ const currentUserId = ref(null) // 存储当前登录用户 ID
 const openChatFromList = async (item: any) => {
   console.log('完整的 item 对象:', item)
   // 1. 获取用户ID（根据实际字段名调整）
-  const userId = item.user
+  const userId = item.username
   if (!userId) {
     ElMessage.warning('该用户信息缺失')
     return
@@ -57,19 +57,23 @@ const openChatFromList = async (item: any) => {
 
   try {
     // 2. 请求完整的用户信息
-    const response = await axios.get(`/shu/username/`, {
+    const response = await request.get(`/api/username/`, {
       params: { user_id: userId },
       headers: { Authorization: `Bearer ${token}` },
     })
-    const userData = Array.isArray(response.data) ? response.data[0] : response.data
+     // 🟢 1. 先解包外层 Result
+    const resData = response.data?.data || response.data
+     // 🟢 2. 兼容后端直接返回数组的情况
+    const userData = Array.isArray(resData) ? resData[0] : resData
     if (!userData) {
       ElMessage.error('未找到该用户')
       return
     }
     selectedUser.value = {
-      id: userId,
+      id: userData.id,
       username: userData.username, // 明确取出 username
     }
+    console.log('🟢 selectedUser 已修正:', selectedUser.value) // 调试验证
     console.log('selectedUser 已赋值:', selectedUser.value) // 调试验证
     dialogVisible.value = true
   } catch (error) {
@@ -80,6 +84,7 @@ const openChatFromList = async (item: any) => {
 // 获取数据
 // 获取公开作品列表（用于广场/他人主页）
 const fetchMergedData = async () => {
+
   const token = localStorage.getItem('access_token')
   // 如果没登录、正在加载、或已加载完，则停止
   if (!token || loading.value || noMore.value) return
@@ -87,19 +92,21 @@ const fetchMergedData = async () => {
   loading.value = true
   try {
     // 请求公开作品（后端接口需保证只返回 isPublic = 1 的数据）
-    const response = await request.post('/shu/daily/', {
-      params: {
-        page: currentPage.value,
-        page_size: pageSize,
-        // 如果后端没默认过滤，可以显式传参告诉后端要公开的
-        // is_public: 1
-      },
-      headers: { Authorization: `Bearer ${token}` },
-    })
+  const response = await request.get('/shu/list/', {
+  params: {
+    page: currentPage.value,
+    page_size: pageSize,
+  },
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+
+  })
+  console.log('📦 后端返回的完整数据:', response.data) // 调试验证
 
     // 假设后端返回格式为 { list: [...], total: 0 }
     // 如果直接返回数组，则改成 const newData = response.data
-    const newData = response.data.list || response.data || []
+    const newData = response.data.data || []  // ✅ 取的是数组
 
     // 将新数据追加到表格/列表中（如果是下拉加载更多）
     tableData.value = [...tableData.value, ...newData]

@@ -11,7 +11,7 @@
         <img v-if="conv.user?.image" :src="conv.user.image" alt="图片" class="item-image" />
         <div class="message-content">
           <h4>
-            {{ conv.friend_username || '匿名用户' }}
+            {{ conv.friendName || '匿名用户' }}
             <el-badge
               :value="conv.unread_count"
               :hidden="conv.unread_count === 0"
@@ -19,7 +19,7 @@
             />
           </h4>
           <!-- <p>{{ conv.last_message?.sender_detail || '暂无好友' }}</p> -->
-          <p class="time">{{ formatTime(conv.created_at) }}</p>
+          <p class="time">{{ formatTime(conv.updateTime) }}</p>
         </div>
       </div>
     </div>
@@ -41,7 +41,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onDeactivated } from 'vue'
 import { ElMessage } from 'element-plus'
-import axios from 'axios'
+import request from '../api/axios'
 import Goodfriend from '../Component2/Goodfriend.vue'
 // --- 数据 ---
 const conversationList = ref<any[]>([]) // 会话列表
@@ -67,7 +67,7 @@ const fetchCurrentUserId = async () => {
   const token = localStorage.getItem('access_token')
   if (!token) return null
   try {
-    const res = await axios.get('/shu/username/', {
+    const res = await request.get('/shu/username/', {
       headers: { Authorization: `Bearer ${token}` },
     })
     // 如果返回的是数组，无法获取当前用户 ID，请改用正确的接口
@@ -81,39 +81,35 @@ const fetchCurrentUserId = async () => {
   }
 }
 
-// --- 清空消息未读消息 标记 ---
+// --- 打开弹出框并清空消息未读消息 标记 ---
 const openChatFromList = async (conv: any) => {
-  if (!conv || !conv.user || !currentUserId.value) return
+  console.log('点击了会话:', conv)
 
-  // 乐观更新：立即清零
-  const originalUnread = conv.unread_count
-  conv.unread_count = 0
-
-  try {
-    await axios.post(
-      `/api/messages/`,
-      { friend_id: conv.friend_id },
-      { headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` } },
-    )
-    // 成功，无需额外操作
-  } catch (error) {
-    // 失败时恢复未读数
-    conv.unread_count = originalUnread
-    console.error('标记已读失败', error)
-    ElMessage.error('标记已读失败，请重试')
-    console.log('conv 结构:', conv)
+  // 1. 先校验关键字段（用实际存在的字段名）
+  if (!conv?.userId) {
+    ElMessage.warning('会话数据异常')
+    return
   }
-  console.log('设置前 currentChatUser:', currentChatUser.value)
-  currentChatUser.value = { id: conv.friend_id, username: conv.friend_username }
-  console.log('设置后 currentChatUser:', currentChatUser.value)
-  dialogVisible.value = true
 
-  // 打开弹窗
+  // 2. 设置聊天对象（子组件 props.user 靠这个）
   currentChatUser.value = {
-    id: conv.friend_id,
-    username: conv.friend_username,
+    id: conv.userId,               // ✅ 用 userId，不是 friend_id
+    username: conv.friendName,     // ✅ 用 friendName
+    friendName: conv.friendName,
   }
+  console.log('设置 currentChatUser:', currentChatUser.value)
+
+  // 3. 打开弹窗
   dialogVisible.value = true
+
+  // 4. 标记已读（可选，字段名先对一下）
+  try {
+    await request.post('/shu/isread/', { friend_id: conv.userId }, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+    })
+  } catch (e) {
+    console.error('标记已读失败', e)
+  }
 }
 // --- 获取好友列表 ---
 const fetchConversations = async (reset = false) => {
@@ -129,15 +125,15 @@ const fetchConversations = async (reset = false) => {
     ElMessage.error('请先登录')
     return
   }
-
+  const currentUserId = localStorage.getItem('user_id')
   loading.value = true
   try {
-    const response = await axios.get('/api/friend/', {
-      params: { page: currentPage.value, page_size: pageSize },
+    const response = await request.get('/shu/friend/', {
+      params: { currentUserId,   page: currentPage.value, page_size: pageSize },
       headers: { Authorization: `Bearer ${token}` },
     })
     // 后端直接返回数组
-    const list = response.data || []
+    const list = Array.isArray(response.data) ? response.data : []
 
     // ✅ 直接使用原始数据，不要映射
     if (reset) {

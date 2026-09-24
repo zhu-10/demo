@@ -31,7 +31,7 @@
 
       <!-- 无结果时 -->
       <el-empty
-        v-if="!loading && list.length === 0 && keyword"
+        v-if="!loading && list?.length === 0 && keyword"
         :image-size="200"
         description="未找到相关内容"
       />
@@ -41,7 +41,7 @@
 
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
-const list = ref([''])
+const list = ref([]) // 搜索结果列表
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
@@ -70,29 +70,54 @@ const goBack = () => {
 // ---------- 搜索请求函数 ----------
 async function fetchData(kw, pageNum = 1, append = false) {
   loading.value = true
-  console.log('实际请求路径:', `/api/searchView/`, { keyword: kw, page: pageNum })
+  console.log('实际请求路径:', `/shu/search/`, { keyword: kw, page: pageNum })
 
   try {
-    const res = await axios.get('/api/searchView/', {
+    const res = await axios.get('/shu/search/', {
       params: { keyword: kw, page: pageNum },
       headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
     })
     console.log('后端原始返回:', res.data)
-    const data = res.data
 
-    // ✅ 兼容数组和分页对象
-    if (Array.isArray(data)) {
-      // 直接是数组：说明后端没分页，但可以通过前端模拟分页吗？目前只能全部显示
-      list.value = data
-      noMore.value = true // 一次性返回所有，无下一页
-    } else {
-      // 标准分页格式：{ results: [], next: "..." }
-      list.value = append ? [...list.value, ...data.results] : data.results
-      noMore.value = !data.next
+    // ✅ 1. 剥离外层 Result 包装
+    const payload = res.data.data !== undefined ? res.data.data : res.data
+
+    // ✅ 2. 提取真正的数组和分页信息（兼容数组或分页对象）
+    let records = []
+    let hasMore = false
+
+    if (Array.isArray(payload)) {
+      // 情况 A：后端直接返回纯数组
+      records = payload
+      hasMore = false // 一次性返回，没有下一页
+    } else if (payload && (payload.records || payload.results)) {
+      // 情况 B：标准分页对象（适配你的后端 records，也兼容常见的 results）
+      const arr = payload.records || payload.results || []
+      records = arr
+
+      // 判断是否还有下一页：你的后端没返回 next，可以通过 total 判断
+      // 这里简单通过当前长度和总数对比，或者保留你原本的 data.next 逻辑
+      const total = payload.total || 0
+      const currentTotal = append ? (list.value?.length || 0) + arr.length : arr.length
+      hasMore = currentTotal < total
     }
+
+    // ✅ 3. 赋值给 list，必须保证 list.value 永远是数组
+    if (append) {
+      list.value = [...(list.value || []), ...records]
+    } else {
+      list.value = records
+    }
+
+    noMore.value = !hasMore
+
   } catch (err) {
-    console.error(err)
+    console.error('搜索请求出错:', err)
     ElMessage.error('搜索失败')
+    // ✅ 4. 出错时也要兜底，防止 list 变成 undefined
+    if (!append) {
+      list.value = []
+    }
   } finally {
     loading.value = false
   }

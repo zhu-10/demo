@@ -15,7 +15,7 @@
         <div class="comment-list" ref="scrollContainer" @scroll="handleScroll">
           <div v-for="item in commentList" :key="item.id" class="comment-item">
             <div class="comment-content">{{ item.comment || '暂无评论' }}</div>
-            <div class="comment-meta">{{ item.user || '用户' }} · {{ item.create_time }}</div>
+            <div class="comment-meta">{{ item.username || '用户' }} · {{ item.createTime }}</div>
           </div>
           <div v-if="loading" class="loading-tip">加载中...</div>
           <div v-if="noMore && commentList.length" class="no-more-tip">没有更多了</div>
@@ -46,8 +46,8 @@ const currentPage = ref(1) // 当前页
 interface CommentItem {
   id: number | string
   comment: string
-  user: string
-  time: string
+  username: string
+  createTime: string
 }
 //关闭面板按钮
 // 新增关闭面板的方法
@@ -56,9 +56,16 @@ const closePanel = () => {
 }
 
 // ---------- 接收父组件参数 ----------
-const props = defineProps<{
-  comment: number // 评论总数（由父组件传入）
-}>()
+const props = defineProps({
+  shuId: {
+    type: Number,
+    required: true,
+  },
+  comment: {
+    type: Number,
+    default: 0,
+  },
+})
 
 const emit = defineEmits<{
   (e: 'update:comment', newCount: number): void
@@ -81,6 +88,7 @@ const togglePanel = () => {
     loadComments()
   }
 }
+
 // ---------- 工具函数：节流 ----------
 const throttle = (fn, delay = 200) => {
   let timer = null
@@ -107,12 +115,14 @@ const loadComments = async (reset = false) => {
 
   loading.value = true
   try {
-    const res = await request.get('/shu/comment/', {
+    const res = await request.get('/shu/Obtain/?page=1&pageSize=20', {
       params: {
         page: currentPage.value,
         pageSize,
+        shuId: props.shuId,
       },
     })
+    console.log('📦 评论后端返回的完整数据:', res.data) // 调试验证
 
     // 兼容多种返回格式
     let rawList = []
@@ -136,8 +146,8 @@ const loadComments = async (reset = false) => {
     const newList = rawList.map((item) => ({
       id: item.id,
       comment: item.comment || '暂无评论',
-      user: item.user?.username || '匿名用户',
-      create_time: formatTime(item.create_time),
+      username: item.username || '匿名用户',
+      createTime: formatTime(item.createTime),
     }))
 
     // 追加到列表
@@ -187,7 +197,9 @@ const submitComment = async () => {
   try {
     const res = await request.post('/shu/comment/', {
       comment: content,
-    })
+}, {
+  params: { shuId: props.shuId }   // 👈 加上这行
+})
 
     if (res.data.code === 200) {
       ElMessage.success('评论成功')
@@ -198,8 +210,8 @@ const submitComment = async () => {
       const newComment: CommentItem = {
         id: res.data.data.id,
         comment: res.data.data.comment,
-        author: res.data.data.user?.name || `用户${res.data.data.user?.id}`,
-        create_time: formatTime(res.data.data.create_time),
+        username: res.data.data.userId?.username || '匿名用户',
+        createTime: formatTime(res.data.data.createTime),
       }
       commentList.value.unshift(newComment)
 
@@ -227,20 +239,20 @@ const submitComment = async () => {
     ElMessage.error('网络错误，请稍后重试')
   }
 }
-// ---------- 时间格式化 ----------
 const formatTime = (isoString: string): string => {
+  // ✅ 如果传入的时间为空或无效，直接返回占位符（如 "刚刚" 或 "未知时间"）
+  if (!isoString) return '刚刚'
+
   const date = new Date(isoString)
+  // ✅ 如果日期无效（比如传入 "abc" 或 null 导致 Invalid Date），也返回占位符
+  if (isNaN(date.getTime())) return '刚刚'
+
   const now = new Date()
-  const diff = now.getTime() - date.getTime() // 时间差（毫秒）
-  if (diff < 60000) {
-    return '刚刚'
-  } else if (diff < 3600000) {
-    return `${Math.floor(diff / 60000)}分钟前`
-  } else if (diff < 86400000) {
-    return `${Math.floor(diff / 3600000)}小时前`
-  } else {
-    return date.toLocaleDateString() // 超过一天显示日期
-  }
+  const diff = now.getTime() - date.getTime()
+  if (diff < 0 || diff < 60000) return '刚刚' // 如果时间差小于1分钟，显示“刚刚”
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
+  return date.toLocaleDateString() // 超过一天显示日期
 }
 </script>
 <style scoped>

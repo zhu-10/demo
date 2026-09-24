@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
 import LikeButton from './LikeButton.vue'
@@ -67,7 +67,8 @@ const currentPage = ref(1)
 const hasMore = ref(true)
 const loading = ref(false)
 const scrollRef = ref<HTMLElement | null>(null) // ✅ 使用 ref 获取 DOM 元素
-
+const pageSize = ref(10)
+const noMore = ref(false)
 // ---- 全选相关计算属性 ----
 const isAllSelected = computed(() => {
   return tableData.value.length > 0 && selectedIds.value.length === tableData.value.length
@@ -84,21 +85,26 @@ const fetchList = async () => {
 
   loading.value = true
   try {
-    const response = await axios.get('/shu/daily/', {
-      params: { page: currentPage.value, page_size: pageSize },
+    const response = await request.get('/shu/my', {
+      params: { page: currentPage.value, pageSize: pageSize.value },
       headers: { Authorization: `Bearer ${token}` },
     })
-    // 假设返回格式为 { list: [...], total: number } 或直接数组
-    const newData = response.data.list || response.data
-    // 追加到现有列表（若分页）
+
+    const res = response.data              // 整个 Result 对象
+    const newData = res.data || res.list || []   // 真正的数组
+    const total = res.total || 0
+
+    if (!Array.isArray(newData)) {
+      console.error('返回的列表不是数组:', newData)
+      return
+    }
+
     tableData.value = [...tableData.value, ...newData]
 
-    // 判断是否还有更多
-    const total = response.data.total || 0
-    if (tableData.value.length >= total) {
+    if (tableData.value.length >= total || newData.length === 0) {
       noMore.value = true
     } else {
-      currentPage.value++   // 下一页
+      currentPage.value++
     }
   } catch (err) {
     console.error('请求失败', err)
@@ -144,7 +150,7 @@ const handleSelectAll = (val: boolean) => {
 const deleteDaily = async (id: number) => {
   if (!Number.isInteger(id) || id <= 0) throw new Error('无效 ID')
   const token = localStorage.getItem('access_token')
-  await request.delete(`/shu/daily/${id}/`, {
+  await request.delete(`/shu/${id}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
 }

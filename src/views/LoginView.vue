@@ -47,8 +47,7 @@ import { ElMessage } from 'element-plus'
 //引入element-plus的表单组件
 import { useRouter } from 'vue-router'
 // 引入登录接口
-import { login } from '../api/auth.js'
-import axios from 'axios'
+import request from 'axios'
 //路由实列
 const router = useRouter()
 const formRef = ref() // 表单引用，用于验证
@@ -73,38 +72,53 @@ const loading = ref(false) // 登录按钮加载状态
 // 提交登录
 const onSubmit = async () => {
   try {
-    const response = await axios.post('/api/login/', {
+    const response = await request.post('/api/login/', {
       username: form.username,
       password: form.password,
     })
     console.log('完整响应:', response)
     console.log('响应数据:', response.data)
 
-    // 提取 token（根据实际字段名调整）
-    const token = response.data.data || response.data.token
-    if (token) {
-      localStorage.setItem('access_token', token)
-      console.log('Token 已保存:', token)
-    } else {
-  ElMessage.error('登录返回数据异常，未包含 token')
-  return
-}
-
-    // 提取用户 ID（根据实际结构调整）
-  const userId = response.data.user?.id || response.data.id || response.data.user_id
-    if (userId) {
-      localStorage.setItem('user_id', String(userId))
-      console.log('用户ID已保存:', userId)
+    // ⚠️ 注意：真正的数据在 response.data.data 里
+    const resData = response.data.data
+    if (!resData) {
+        ElMessage.error('登录失败，后端未返回数据')
+        return
     }
 
-    // 登录成功提示
+    // ========== 1. 提取并保存 Token ==========
+    const token = resData.token
+    if (!token) {
+        ElMessage.error('登录异常：未获取到令牌')
+        return // 没有 token 直接阻断执行
+    }
+
+    // 先清空旧缓存（防止 rooter238 脏数据残留），再存新的
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('user_id')
+    localStorage.setItem('access_token', token)
+    console.log('新的Token已覆盖:', token)
+
+    // ========== 2. 提取并保存 用户ID ==========
+    // 从 resData 中取，而不是 response.data
+    const userId = resData.id
+    if (!userId) {
+        ElMessage.error('登录异常：未获取到用户ID')
+        return
+    }
+    localStorage.setItem('user_id', String(userId))
+    console.log('用户ID已保存:', userId)
+
+    // ========== 3. 登录成功，跳转 ==========
     ElMessage.success('登录成功')
-    // 跳转到主页
     router.push('/')
+
   } catch (error) {
     console.error('登录失败:', error)
     if (error.response) {
-      ElMessage.error(error.response.data?.detail || '登录失败，请检查用户名和密码')
+      // 优先取后端返回的 msg，其次取 detail
+      const errorMsg = error.response.data?.msg || error.response.data?.detail || '登录失败，请检查用户名和密码'
+      ElMessage.error(errorMsg)
     } else {
       ElMessage.error('网络错误，请稍后重试')
     }

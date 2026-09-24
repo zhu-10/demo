@@ -83,7 +83,7 @@ const props = defineProps({
   keyword: String, // 父组件传入的当前关键词，用于同步输入框
 })
 
-const emit = defineEmits(['SearchComponent2'])
+const emit = defineEmits(['SearchComponent2'])  // 定义一个事件，用于向父组件传递搜索关键词
 const input = ref('')
 
 //添加用户弹出框

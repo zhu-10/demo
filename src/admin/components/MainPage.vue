@@ -144,7 +144,6 @@ const handleScroll = () => {
 const beforeAvatarUpload = async (options) => {
   const { file, onSuccess, onError } = options
 
-  // 前端大小校验（4MB）
   const maxSize = 4 * 1024 * 1024
   if (file.size > maxSize) {
     ElMessage.error(`图片大小不能超过 ${maxSize / (1024 * 1024)}MB`)
@@ -152,43 +151,17 @@ const beforeAvatarUpload = async (options) => {
     return
   }
 
-  const formData = new FormData()
-  formData.append('image', file) // 字段名必须与后端一致
-
-  try {
-    const response = await fetch('/shu/daily/daily_image/', {
-      method: 'POST', // 根据后端接口要求选择 POST 或 GET
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-
-        // 不要手动设置 Content-Type，让浏览器自动设置
-      },
-      body: formData,
-    })
-
-    const result = await response.json()
-    if (response.ok && result.image) {
-      // 存储图片 URL，用于后续提交日常
-      form.image = result.image
-
-      // 更新 fileList 中的预览 URL
-      const target = fileList.value.find((item) => item.uid === file.uid)
-      if (target) {
-        target.url = result.image
-      }
-
-      onSuccess(result)
-      ElMessage.success('图片上传成功')
-    } else {
-      throw new Error(result.error || '上传失败')
-    }
-  } catch (error) {
-    console.error('上传图片失败', error)
-    onError(error)
-    ElMessage.error(error.message || '图片上传失败')
+  // 生成本地预览 URL
+  const url = URL.createObjectURL(file)
+  const target = fileList.value.find((item) => item.uid === file.uid)
+  if (target) {
+    target.url = url
   }
-}
 
+  // 直接标记为成功，不发送请求
+  onSuccess()
+  ElMessage.success('图片已选择')
+}
 // 移除图片
 const handleRemove = (file) => {
   const index = fileList.value.findIndex((item) => item.uid === file.uid)
@@ -216,22 +189,33 @@ const handleFileChange = (file, fileListNew) => {
 //   window.open(file.url, '_blank')
 // }
 
-// --- 提交发布（日常）---
+// 1. 获取列表（用于页面加载和刷新）
 const getList = async () => {
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    ElMessage.error('请先登录')
+    router.push('/1')
+    return
+  }
   currentPage.value = 1
   noMore.value = false
-  const res = await request.get('/shu/daily/')
-  list.value = [...new Map(res.data.map((item) => [item.id, item])).values()] // 去重
-  console.log('去重后列表长度:', list.value.length)
-  console.log(
-    'id列表:',
-    list.value.map((i) => i.id),
-  )
+
+  try {
+    // ✅ 发起 GET 请求，并将响应赋值给 res
+    const res = await request.get('/shu/list', {
+      params: { page: currentPage.value } // 根据实际传参
+    })
+    const listData = res.data.data || []  // 现在 res 已定义
+    list.value = [...new Map(listData.map((item) => [item.id, item])).values()]
+  } catch (err) {
+    console.error('获取列表失败', err)
+  }
 }
+
+//  提交表单（点击按钮时触发）
 const submitForm = async () => {
-  console.log('准备提交的图片URL:', form.image)
   const token = localStorage.getItem('access_token')
-  if (loading.value) return // 正在提交中，直接返回
+  if (loading.value) return
   if (!token) {
     ElMessage.error('请先登录')
     router.push('/1')
@@ -246,41 +230,42 @@ const submitForm = async () => {
   formData.append('theme', form.theme)
   formData.append('content', form.content)
   if (fileList.value.length > 0) {
-    // el-upload 组件中，每个文件的原始 File 对象在 .raw 属性中
-    const imageFile = fileList.value[0].raw // 只取第一张图片（或遍历多张）
+    const imageFile = fileList.value[0].raw
     if (imageFile) {
-      formData.append('image', imageFile) // 发送文件，不是 URL
+      formData.append('image', imageFile)
     }
-  } // 确保字段存在，后端可能需要
+  }
 
   loading.value = true
   try {
-    const res = await request.get('/shu/list/public?page=1&size=10', formData, {
+    const res = await request.post('/shu/daily/', formData, {
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data', // 手动指定
-      },
-      transformRequest: [(data) => data], // 关键：防止 axios 转换 FormData
+        'Content-Type': undefined
+      }
     })
+
     if (res.status === 201 || res.status === 200) {
       ElMessage.success('发布成功')
-      await getList()
+      await getList()  // ✅ 正确：刷新列表数据
       dialogFormVisible.value = false
       form.theme = ''
       form.content = ''
-      form.image = [] // 保留，因为 form 中可能还有 image 字段用于存储 URL
-      // 已删除 image.value 和 uploadFile.value 的重置
+      form.image = ''
+      fileList.value = []
     } else {
       ElMessage.error(`发布失败：${res.data?.message || '未知错误'}`)
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error('发布请求失败', err)
     ElMessage.error('发布请求失败')
-  } finally {
+    const uploadRes = await uploadApi(data)
+console.log('上传返回:', uploadRes)
+  }
+  finally {
     loading.value = false
   }
 }
-
 // ========== 6. 生命周期 ==========
 onMounted(() => {
   getList()
