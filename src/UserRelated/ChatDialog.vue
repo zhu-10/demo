@@ -127,7 +127,7 @@ const fetchCurrentUser = async () => {
     // 根据后端真实返回结构提取数据
     // 假设后端返回的是 { code: 200, data: { id: 1, username: 'root' } }
     // 如果后端直接返回 { id: 1, username: 'root' }，则用 res.data
-    const userData = res.data?.data || res.data
+    const userData = res.data
 
     // 4. 安全赋值
     if (userData) {

@@ -8,30 +8,38 @@
     destroy-on-close
   >
     <div class="chat-container">
-      <div class="message-list" ref="scrollRef" @scroll="handleScroll">
-        <div v-if="loadingNewer" class="load-tip">加载更新中...</div>
+  <div class="message-list" ref="scrollRef" @scroll="handleScroll">
+    <div v-if="loadingNewer" class="load-tip">加载更新中...</div>
 
-        <div v-for="msg in messages" :key="msg.id" class="message-item">
-          <span class="time">{{ formatTime(msg.created_at) }}</span>
-          <div class="message-content">
-            <!-- 对方发的消息 -->
-            <span
-              v-if="currentUserId !== null && Number(msg.sender?.id) !== Number(currentUserId)"
-              class="sender"
-            >
-              <el-link @click="goToUserProfile(msg.sender)">
-                {{ msg.sender_detail?.username || '未知用户' }}
-              </el-link>
-            </span>
-            <!-- 自己发的消息 -->
-            <span v-else class="receiver" style="color: #07c160">我</span>
+    <!-- 加一层防御，如果 messages 为 null 就不循环 -->
+    <template v-if="messages && messages.length > 0">
+      <div v-for="msg in messages" :key="msg.id" class="message-item">
+        <span class="time">{{ formatTime(msg.createTime || msg.updateTime) }}</span>
+        <div class="message-content">
+          <!-- 判断：如果消息的发送者不是当前用户，就是对方发的 -->
+          <span
+            v-if="currentUserId !== null && Number(msg.senderId) !== Number(currentUserId)"
+            class="sender"
+          >
+            <!-- 点击直接传对方的 userId (即好友ID) -->
+            <el-link @click="goToUserProfile(msg.userId)">
+              <!-- 直接显示 friendName -->
+              {{ msg.friendName || '未知用户' }}
+            </el-link>
+          </span>
+          <!-- 否则就是自己发的 -->
+          <span v-else class="receiver" style="color: #07c160">我</span>
 
-            <span class="content">{{ msg.content }}</span>
-          </div>
+          <span class="content">{{ msg.content }}</span>
         </div>
-
-        <div v-if="loadingOlder" class="load-tip">加载更早消息中...</div>
       </div>
+    </template>
+
+      <div v-else class="no-message">暂无聊天记录</div>
+
+      <div v-if="loadingOlder" class="load-tip">加载更早消息中...</div>
+      </div>
+
 
       <div class="input-area">
         <el-input
@@ -136,54 +144,54 @@ const fetchCurrentUser = async () => {
 // ---------- 核心加载函数 ----------
 //获取消息列表
 const fetchMessages = async (direction: 'older' | 'newer') => {
-  console.log('④ fetchMessages 被调用, direction =', direction, 'user.id =', props.user?.id)
   if (!props.user?.id) return ElMessage.warning('请先选择聊天对象')
-  // ... 省略防重复 ...
+
   try {
     let page = currentPage.value
     page = direction === 'older' ? page + 1 : Math.max(1, page - 1)
 
-    const res = await request.get('/shu/history/', {
+    const res = await request.get('/shu/getmessages/', {
       params: {
         page,
-        pageSize: pageSize,          // ✅ 驼峰
-        friendId: props.user.id,     // ✅ 驼峰
+        pageSize,
+        userId: props.user.id,
       },
       headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
     })
+    console.log('接口返回的真正 res 结构:', res)  // ✅ 注意：接口返回的 res.data 本身就是数组！直接赋值，不要再点 .data
 
-    const newData = res.data?.results ?? res.data ?? []
+    // ✅ 判断 code
+    if (res.code === 200) {
+      // ✅ 注意：接口返回的 res.data 本身就是数组！直接赋值，不要再点 .data
+      const newData = res.data || []
+      console.log('获取到真正的消息数组:', newData)
 
-    const totalPages = res.data.total_pages || 1
+      // 由于你的后端没有返回 total_pages 和 next，我们通过 newData.length 简单判断
+      const hasNext = newData.length > 0
 
     if (direction === 'older') {
-      messages.value = [...messages.value, ...newData]
-      hasOlder.value = page < totalPages && newData.length > 0
-    } else {
-      // 如果是首次加载（page===1），直接替换；否则前置插入
-      const hasNext = !!res.data.next // 或 res.data.next !== null
-
-      if (page === 1) {
-        messages.value = newData
-        hasNewer.value = false
-        hasOlder.value = hasNext
+        // 加载更早的历史消息：查出的是更旧的N条（DESC），反转后变为（旧->新），拼接到头部
+        const olderData = [...newData].reverse()
+        messages.value = [...olderData, ...messages.value]
       } else {
-        messages.value = [...newData, ...messages.value]
-        hasNewer.value = page > 1 && newData.length > 0
+        // 首次加载或下拉加载最新：查出的是最新的N条（DESC），反转后变为（旧->新），直接赋值或拼接到尾部
+        const latestData = [...newData].reverse()
+        if (page === 1) {
+          messages.value = latestData
+        } else {
+          messages.value = [...messages.value, ...latestData]
+        }
       }
-      // 滚动到底部
-      await nextTick()
-      const container = scrollRef.value
-      if (container) container.scrollTop = container.scrollHeight
+      currentPage.value = page
+    } else {
+      ElMessage.error(res.msg || '获取消息失败')
     }
-    currentPage.value = page
   } catch (error) {
+    console.error('加载消息异常:', error) // 如果还有错，这里会打印出准确的报错原因
     ElMessage.error('加载消息失败')
   } finally {
     if (direction === 'older') loadingOlder.value = false
     else loadingNewer.value = false
-    console.log('props.user 的值:', props.user)
-    console.log('props.user?.username 的值:', props.user?.username)
   }
 }
 //发送消息
@@ -205,9 +213,9 @@ const sendMessage = async () => {
   sendingMessage.value = true
   try {
     await request.post(
-      '/shu/chat/',
+      '/shu/messages/',
       {
-        receiver: props.user?.id,
+        friend: props.user?.id,
         content: newMessage.value,
       },
       {
@@ -307,6 +315,9 @@ onMounted(() => {
 .receiver {
   margin-right: -100px;
   margin-left: 600px;
+}
+.no-message{
+  margin-left: 300px;
 }
 /* 消息背景框 */
 .content {

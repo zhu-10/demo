@@ -207,7 +207,7 @@ const addFriend = async () => {
   } catch (error) {
     console.error('添加好友失败:', error)
     console.log('后端错误响应:', error.response?.data) // 打印后端错误响应
-    console.log('🔍 准备发送的 friendId:', friendId)
+    console.log('🔍 准备发送的 userId:', userId)
     ElMessage.error('添加好友失败，请稍后重试')
   } finally {
     addingFriend.value = false

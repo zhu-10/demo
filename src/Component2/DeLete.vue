@@ -79,29 +79,53 @@ const isIndeterminate = computed(() => {
 })
 
 // ---- 获取列表数据 ----
-const fetchList = async () => {
+const fetchList = async (reset = false) => {
   const token = localStorage.getItem('access_token')
-  if (!token || loading.value || noMore.value) return
+  // 如果传了 reset，说明要重新加载第一页，重置状态
+  if (!token || (!reset && (loading.value || noMore.value))) return
+
+  if (reset) {
+    currentPage.value = 1
+    noMore.value = false
+    tableData.value = []
+  }
 
   loading.value = true
   try {
     const response = await request.get('/shu/my', {
-      params: { page: currentPage.value, pageSize: pageSize.value },
+      params: {
+        page: currentPage.value,
+        pageSize: pageSize.value || pageSize // 兼容 pageSize 是 ref 还是普通变量
+      },
       headers: { Authorization: `Bearer ${token}` },
     })
 
-    const res = response.data              // 整个 Result 对象
-    const newData = res.data || res.list || []   // 真正的数组
-    const total = res.total || 0
+    // 🔥 因为拦截器已经返回了 response.data，所以这里的 response 就是后端的 Result 对象
+    // 为了绝对防弹，兼容一下 response 和 response.data 两种情况
+    const res = response.code !== undefined ? response : response.data
+
+    // 提取真正的数组
+    const newData = res.data || res.list || res.rows || []
+    const total = res.total || res.totalCount || 0
 
     if (!Array.isArray(newData)) {
       console.error('返回的列表不是数组:', newData)
       return
     }
 
-    tableData.value = [...tableData.value, ...newData]
+    // 🔥 如果是第一页（reset 或 currentPage 为 1），直接覆盖；否则追加
+    if (reset || currentPage.value === 1) {
+      tableData.value = newData
+    } else {
+      tableData.value = [...tableData.value, ...newData]
+    }
 
-    if (tableData.value.length >= total || newData.length === 0) {
+    // 🔥 分页判断优化
+    if (newData.length === 0 || newData.length < pageSize.value) {
+      // 如果本页返回的数据小于 pageSize，说明没有下一页了
+      noMore.value = true
+    } else if (total > 0 && tableData.value.length >= total) {
+      // 如果有 total，且总数已达到，说明没有下一页了
       noMore.value = true
     } else {
       currentPage.value++

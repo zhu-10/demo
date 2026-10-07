@@ -104,7 +104,7 @@ const openChatFromList = async (conv: any) => {
 
   // 4. 标记已读（可选，字段名先对一下）
   try {
-    await request.post('/shu/isread/', { friend_id: conv.userId }, {
+    await request.post('/shu/isread/', { userId: conv.userId }, {
       headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
     })
   } catch (e) {
@@ -118,37 +118,52 @@ const fetchConversations = async (reset = false) => {
     conversationList.value = []
     noMore.value = false
   }
-  if (loading.value || noMore.value) return
+
+  if (!reset && (loading.value || noMore.value)) return
 
   const token = localStorage.getItem('access_token')
   if (!token) {
     ElMessage.error('请先登录')
     return
   }
+
   const currentUserId = localStorage.getItem('user_id')
   loading.value = true
+
   try {
     const response = await request.get('/shu/friend/', {
-      params: { currentUserId,   page: currentPage.value, page_size: pageSize },
+      params: {
+        currentUserId,
+        page: currentPage.value,
+        page_size: pageSize.value || pageSize
+      },
       headers: { Authorization: `Bearer ${token}` },
     })
-    // 后端直接返回数组
-    const list = Array.isArray(response.data) ? response.data : []
 
-    // ✅ 直接使用原始数据，不要映射
-    if (reset) {
+    console.log('接口真实返回的 response:', response)
+
+    // 🔥 核心修改：不管响应是什么层级，只要抓出里面的数组
+    let list = Array.isArray(response)
+  ? response
+  : (response?.data?.list || response?.data || [])
+
+    console.log('最终提取出的列表:', list)
+
+
+    // 赋值逻辑
+    if (reset || currentPage.value === 1) {
       conversationList.value = list
     } else {
       conversationList.value = [...conversationList.value, ...list]
     }
 
     // 分页判断
-    if (list.length < pageSize) {
+    if (list.length === 0 || list.length < (pageSize.value || pageSize)) {
       noMore.value = true
     } else {
       currentPage.value++
     }
-    console.log('会话列表原始数据:', conversationList.value)
+
   } catch (error) {
     console.error('加载会话列表失败', error)
     ElMessage.error('加载会话列表失败')

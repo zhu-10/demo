@@ -106,7 +106,7 @@ const fetchMergedData = async () => {
 
     // 假设后端返回格式为 { list: [...], total: 0 }
     // 如果直接返回数组，则改成 const newData = response.data
-    const newData = response.data.data || []  // ✅ 取的是数组
+    const newData = response.data || []  // ✅ 取的是数组
 
     // 将新数据追加到表格/列表中（如果是下拉加载更多）
     tableData.value = [...tableData.value, ...newData]

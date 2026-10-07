@@ -38,11 +38,20 @@ request.interceptors.request.use(
 
 // 响应拦截器：统一处理 401 等
 request.interceptors.response.use(
-  (response) => response,
+  // 🔥 核心修改：剥掉 Axios 的外壳，直接返回后端的业务数据
+  (response) => {
+    // 如果后端返回的是文件流（如下载Excel），不需要剥壳
+    if (response.config.responseType === 'blob') {
+      return response;
+    }
+    return response.data;
+  },
   (error) => {
+    // 处理 401 未授权
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('access_token')
-      window.location.href = '1/' // 跳转到登录页
+      // ⚠️ 注意：这里跳转的路径写错了，应该是 /login 或者你的实际路由
+      window.location.href = '/login'
     }
     return Promise.reject(error)
   }

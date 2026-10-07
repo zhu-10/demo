@@ -118,7 +118,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       //获取消息
-      '/shu/messages/${row.id}/': {
+      '/shu/getmessages/': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
@@ -136,7 +136,13 @@ export default defineConfig({
       //   target: 'http://127.0.0.1:8000',
       //   changeOrigin: true,
       // },
-      '/shu/update_user/update_user/': {
+      //获取用户信息
+      '/api/info/': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+      //更新用户信息
+      '/api/user/': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },

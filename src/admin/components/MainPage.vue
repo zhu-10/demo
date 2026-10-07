@@ -205,7 +205,7 @@ const getList = async () => {
     const res = await request.get('/shu/list', {
       params: { page: currentPage.value } // 根据实际传参
     })
-    const listData = res.data.data || []  // 现在 res 已定义
+    const listData = res.data || []  // 现在 res 已定义
     list.value = [...new Map(listData.map((item) => [item.id, item])).values()]
   } catch (err) {
     console.error('获取列表失败', err)

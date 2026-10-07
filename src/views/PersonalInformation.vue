@@ -140,7 +140,7 @@
 </template>
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick } from 'vue'
-import axios from 'axios'
+import  request  from '../api/axios'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 
@@ -194,7 +194,7 @@ const fetchUsername = async () => {
     return // 或者跳转到登录页
   }
   try {
-    const res = await axios.get('/shu/users/me/', { headers: { Authorization: `Bearer ${token}` } }) // 假设返回数据
+    const res = await request.get('/api/info/', { headers: { Authorization: `Bearer ${token}` } }) // 假设返回数据
     console.log('原始响应数据:', res.data)
     Object.assign(userInfo, res.data)
     // 关键：必须用 Object.assign 更新
@@ -264,7 +264,7 @@ const handleSave = async () => {
 
   saving.value = true
   try {
-    await axios.put('/shu/update_user/update_user/', userInfo, {
+    await request.put('/api/user/', userInfo, {
       headers: { Authorization: `Bearer ${token}` },
     })
     ElMessage.success('保存成功')
